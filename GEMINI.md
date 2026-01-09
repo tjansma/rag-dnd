@@ -4,39 +4,50 @@
 
 **rag-dnd** is a Retrieval-Augmented Generation (RAG) system designed to index and query session logs from long-running Dungeons & Dragons campaigns.
 
-The primary goal of this project is to integrate with the **Gemini CLI** via a **hook**. This integration will automatically inject relevant campaign history into the context of every new prompt, ensuring the LLM is aware of past events, NPC interactions, and plot developments during the session.
+The primary goal of this project is to integrate with the **Gemini CLI** via a **hook** (and IDEs via **MCP**). This integration automatically injects relevant campaign history into the context of prompts, ensuring the LLM is aware of past events, NPC interactions, and plot developments.
 
 ## Architecture & Technology
 
 *   **Language:** Python (>=3.12)
 *   **Package Manager:** `uv`
+*   **Embeddings:** `intfloat/multilingual-e5-small` (optimized for Dutch & efficiency).
+*   **Storage Strategy (Parent-Child):**
+    *   **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
+    *   **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
 *   **Core Libraries:**
-    *   `fastapi`: For the API layer.
-    *   `langchain`: For RAG orchestration.
+    *   `langchain` / `langchain-huggingface`: For RAG abstractions.
     *   `chromadb`: Vector Store.
-    *   `sentence-transformers`: Embeddings.
-*   **Integration:** Gemini CLI Hooks (see `doc/llms.txt` for CLI architecture references).
+    *   `sqlalchemy`: ORM for SQLite.
+
+## Current Status (Jan 2026)
+
+- **Implemented:**
+    - Markdown Header-based Chunking (`rag/chunker.py`).
+    - Smart Sentence Splitting (`re` based).
+    - E5 Embedding logic with Prefixes (`rag/embeddings.py`).
+    - Storage Manager (`rag/manager.py`) orchestrating SQLite + Chroma.
+- **In Progress:**
+    - Retrieval Logic (`rag/retriever.py`).
+    - CLI Management Tools.
+    - Integration Layers (Hooks & MCP).
 
 ## Setup & Usage
 
 ### Installation
 
-This project uses `uv` for dependency management.
-
 ```bash
 uv sync
 ```
 
-### Running
+### Indexing Data
 
-Currently, the project entry point is a simple placeholder.
+To parse and index the current log file (`config.session_log`):
 
 ```bash
 python main.py
 ```
 
-## Development Context
+## Documentation
 
-*   **Configuration:** Managed via `pyproject.toml`.
-*   **Documentation:** References for LLM integration and CLI architecture are located in `doc/`.
-*   **Goal:** Implement the RAG logic in Python and expose it via a script or API that the Gemini CLI hook can call to retrieve context before sending a prompt to the model.
+- **`doc/todo.md`**: Detailed technical roadmap and remaining tasks.
+- **`doc/llms.txt`**: References for CLI integration.

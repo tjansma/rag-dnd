@@ -1,16 +1,13 @@
+from pathlib import Path
+
 from config import Config
-from rag import Chunker, Embedding
+from rag import store_document
 
 def main():
     config = Config()
 
-    chunker = Chunker(strategy="heading2")
-    chunks = chunker.chunk(text=open(config.session_log).read())
+    store_document(config.session_log, config)
 
-    embedding = Embedding()
-    vector = embedding.embed_sentences(chunks[-1])
-    print(chunks[-1])
-    print(vector)
 
 if __name__ == "__main__":
     main()

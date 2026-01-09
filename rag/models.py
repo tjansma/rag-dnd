@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Optional
 from dataclasses import dataclass
 
@@ -30,21 +31,24 @@ class Document(ORMBase):
     chunks: orm.Mapped[list["Chunk"]] = orm.relationship(back_populates="parent_document")
 
 
+@dataclass
+class Sentence:
+    chunk: "Chunk"
+    text: str
+    embedding_vector: Optional[list[float]] = None
+    stored: bool = False
+
+
 class Chunk(ORMBase):
     """Class to represent a chunk of a document."""
     __tablename__ = "chunks"
+    __allow_unmapped__ = True
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
     document_id: orm.Mapped[int] = orm.mapped_column(sa.Integer, sa.ForeignKey("documents.id"))
     text: orm.Mapped[str] = orm.mapped_column(sa.String)
     chunk_hash: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
     
     parent_document: orm.Mapped["Document"] = orm.relationship(back_populates="chunks")
+
+    # This is not a mapped column, but a list of sentences
     sentences: list["Sentence"]
-
-
-@dataclass
-class Sentence:
-    chunk: Chunk
-    text: str
-    embedding_vector: Optional[list[float]] = None
-    stored: bool = False

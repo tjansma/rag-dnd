@@ -3,6 +3,7 @@ Chunker for markdown text based on headers.
 """
 from hashlib import sha256
 from typing import get_args,List, Literal
+import re
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_core.documents.base import Document
@@ -71,9 +72,14 @@ class Chunker:
             
             # Create sentences
             chunk.sentences = []
-            for line in chunk.text.split("\n"):
-                if line.strip() != "":
-                    sentence = Sentence(text=line.strip(), chunk=chunk)
+            
+            # Split text into sentences using regex
+            # Look for sentence endings (.!?) followed by whitespace
+            sentences_text = re.split(r'(?<=[.!?])\s+', chunk.text)
+            
+            for s_text in sentences_text:
+                if s_text.strip() != "":
+                    sentence = Sentence(text=s_text.strip(), chunk=chunk)
                     chunk.sentences.append(sentence)
 
             chunks.append(chunk)

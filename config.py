@@ -16,7 +16,7 @@ class Config:
             os.getenv("RAG_DND_EMBEDDINGS_PROVIDER") or "HuggingFace"
         self.vector_database: str = os.getenv("RAG_DND_VECTORDB") or \
             "data/chroma"
-        self.content_database: str = os.getenv("RAG_DND_CONTENTDB") or \
-            "data/chroma"
+        self.content_database_url: str = os.getenv("RAG_DND_CONTENTDB_URL") or \
+            "sqlite://"
         self.collection_name: str = os.getenv("RAG_DND_COLLECTION_NAME") or \
             "rag_dnd"

@@ -27,7 +27,8 @@ class Embedding:
         if self.embedding_provider == "HuggingFace":
             self.embedding = HuggingFaceEmbeddings(
                 model_name=self.embedding_model,
-                model_kwargs={"device": None})
+                model_kwargs={"device": None},
+                encode_kwargs={"normalize_embeddings": True})
         else:
             raise ValueError(
                 f"Unknown embedding provider: {self.embedding_provider}")
@@ -42,8 +43,15 @@ class Embedding:
         Returns:
             None
         """
-        # 1. Verzamel alle teksten
-        texts = [s.text for s in chunk.sentences]
+        # 1. Verzamel alle teksten, met een sliding window met daarin de voor 
+        # en na volgende zin.
+        if len(chunk.sentences) > 1:
+            texts = ["passage: " + "\n".join([chunk.sentences[0].text, chunk.sentences[1].text])]
+            for i in range(1, len(chunk.sentences) - 1):
+                texts.append("passage: " + "\n".join([chunk.sentences[i-1].text, chunk.sentences[i].text, chunk.sentences[i+1].text]))
+            texts.append("passage: " + "\n".join([chunk.sentences[-2].text, chunk.sentences[-1].text]))
+        else:
+            texts = ["passage: " + chunk.sentences[0].text]
         
         # 2. Batch embedding (Veel sneller!)
         embeddings = self.embedding.embed_documents(texts)
