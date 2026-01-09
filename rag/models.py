@@ -1,0 +1,50 @@
+from typing import Optional
+from dataclasses import dataclass
+
+import sqlalchemy as sa
+import sqlalchemy.orm as orm
+
+
+class ORMBase(orm.DeclarativeBase):
+    """Base class for all ORM models."""
+    pass
+
+
+class Collection(ORMBase):
+    """Class to represent a collection of documents."""
+    __tablename__ = "collections"
+    id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
+    name: orm.Mapped[str] = orm.mapped_column(sa.String)
+
+    documents: orm.Mapped[list["Document"]] = orm.relationship(back_populates="collection")
+
+class Document(ORMBase):
+    """Class to represent a document."""
+    __tablename__ = "documents"
+    id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
+    file_name: orm.Mapped[str] = orm.mapped_column(sa.String)
+    file_hash: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
+    collection_id: orm.Mapped[int] = orm.mapped_column(sa.Integer, sa.ForeignKey("collections.id"))
+    
+    collection: orm.Mapped["Collection"] = orm.relationship(back_populates="documents")
+    chunks: orm.Mapped[list["Chunk"]] = orm.relationship(back_populates="parent_document")
+
+
+class Chunk(ORMBase):
+    """Class to represent a chunk of a document."""
+    __tablename__ = "chunks"
+    id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
+    document_id: orm.Mapped[int] = orm.mapped_column(sa.Integer, sa.ForeignKey("documents.id"))
+    text: orm.Mapped[str] = orm.mapped_column(sa.String)
+    chunk_hash: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
+    
+    parent_document: orm.Mapped["Document"] = orm.relationship(back_populates="chunks")
+    sentences: list["Sentence"]
+
+
+@dataclass
+class Sentence:
+    chunk: Chunk
+    text: str
+    embedding_vector: Optional[list[float]] = None
+    stored: bool = False

@@ -1,0 +1,20 @@
+[project]
+name = "rag-dnd"
+version = "0.1.0"
+description = "D&D RAG campaign history"
+readme = "README.md"
+authors = [
+    { name = "Tim Jansma", email = "i888986@fontysict.nl" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.4.0",
+    "click>=8.3.1",
+    "dotenv>=0.9.9",
+    "fastapi>=0.128.0",
+    "langchain>=1.2.0",
+    "langchain-huggingface>=1.2.0",
+    "langchain-text-splitters>=0.2.0",
+    "sentence-transformers>=5.2.0",
+    "sqlalchemy>=2.0.45",
+]
