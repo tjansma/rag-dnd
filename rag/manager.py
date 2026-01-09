@@ -5,14 +5,25 @@ import os
 from hashlib import sha256
 from pathlib import Path
 
+from sqlalchemy.orm import Session
+
 from config import Config
 
 from .database import get_session, init_db
 from .embeddings import Embedding
-from .models import Document
+from .models import Document, Collection
 from .store import VectorStore
 from .chunker import Chunker
-from .services import ensure_collection
+
+def ensure_collection(session: Session, collection_name: str) -> Collection:
+    """Ensure a collection exists."""
+    collection = session.query(Collection).filter_by(name=collection_name).first()
+    if collection is None:
+        collection = Collection(name=collection_name)
+        session.add(collection)
+        session.commit()
+    return collection
+
 
 def store_document(filename: str, config: Config=Config()) -> None:
     """
