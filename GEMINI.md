@@ -26,8 +26,8 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
     - Smart Sentence Splitting (`re` based).
     - E5 Embedding logic with Prefixes (`rag/embeddings.py`).
     - Storage Manager (`rag/manager.py`) orchestrating SQLite + Chroma.
+    - Retrieval Logic (`rag/manager.py`).
 - **In Progress:**
-    - Retrieval Logic (`rag/retriever.py`).
     - CLI Management Tools.
     - Integration Layers (Hooks & MCP).
 

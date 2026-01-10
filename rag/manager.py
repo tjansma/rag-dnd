@@ -114,6 +114,10 @@ def query(query: str, config: Config=Config()) -> list[Chunk]:
     logger.debug(f"Retrieving relevant chunks from database: {config.content_database_url}")
     session = get_session()
     chunks = session.query(Chunk).filter(Chunk.id.in_(relevant_chunk_ids)).all()
+    # Detach objects from session so they can be used after close()
+    # WARNING: Lazy-loaded relationships (like chunk.parent_document) will FAIL 
+    # if accessed after this point. Use joinedload() in the query if needed.
+    session.expunge_all()
     session.close()
     
     logger.info(f"Retrieved {len(chunks)} relevant chunks.")

@@ -1,9 +1,9 @@
 # TODO
 
-## Query logic
-- [ ] **Implement `ParentChildRetriever` class** (`rag/retriever.py`)
-    - [ ] Initialize with `Embedding` and `VectorStore` (Chroma) + `Database` (SQLite).
-    - [ ] **Method `search(query: str, k: int = 5)`**:
+## Query logic (Implemented)
+- [x] **Implement `ParentChildRetriever` class** (Implemented as `query` in `rag/manager.py`)
+    - [x] Initialize with `Embedding` and `VectorStore` (Chroma) + `Database` (SQLite).
+    - [x] **Method `search(query: str, k: int = 5)`**:
         1.  Embed input `query` with prefix `"query: "` (required for E5 model).
         2.  Query `VectorStore` (ChromaDB) to get top `k` matching **child sentences**.
         3.  Extract unique `parent_ids` from the metadata of these children.

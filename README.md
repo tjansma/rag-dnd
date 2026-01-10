@@ -49,8 +49,9 @@ This will:
 3.  Split sections into sentence windows (Children).
 4.  Generate embeddings and populate `data/chroma_db` and `data/dnd.db`.
 
-### Querying (Coming Soon)
-A CLI interface is being developed to query the logs:
+### Querying
+You can currently query the logs using the Python API in `main.py` or `rag.manager.query`.
+A full CLI interface is planned:
 ```bash
 # Future usage
 python cli.py search "Wat weet Jams over de Black Spider?"
@@ -59,7 +60,7 @@ python cli.py search "Wat weet Jams over de Black Spider?"
 ## 🗺️ Roadmap
 
 - [x] **Core RAG Logic:** Chunking, Embedding, Storage.
-- [ ] **Retriever:** Logic to query the database and return Parent chunks.
+- [x] **Retriever:** Logic to query the database and return Parent chunks.
 - [ ] **CLI Interface:** `add`, `remove`, `update`, `search` commands.
 - [ ] **Gemini Hook:** Script to intercept specific prompt patterns.
 - [ ] **MCP Server:** Implementation of `search_logs` tool for IDEs.
