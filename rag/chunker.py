@@ -2,6 +2,7 @@
 Chunker for markdown text based on headers.
 """
 from hashlib import sha256
+import logging
 from typing import get_args,List, Literal
 import re
 
@@ -10,6 +11,8 @@ from langchain_core.documents.base import Document
 
 from .models import Document, Chunk, Sentence
 from .services import load_document_text
+
+logger = logging.getLogger(__name__)
 
 ChunkingStrategy = Literal["heading1", "heading2", "heading3"]
 
@@ -26,8 +29,12 @@ class Chunker:
             strategy (str): The strategy to use for chunking. 
                             Must be one of the known strategies.
         """
+        logger.debug(f"Initializing Chunker with strategy: {strategy}")
         valid_strategies = get_args(ChunkingStrategy)
         if strategy not in valid_strategies:
+            logger.error(
+                f"Unknown strategy: {strategy}. Valid strategies: "
+                f"{valid_strategies}")
             raise ValueError(
                 f"Unknown strategy: {strategy}. Valid strategies: "
                 f"{valid_strategies}")
@@ -44,9 +51,11 @@ class Chunker:
         Returns:
             List[Chunk]: A list of chunks.
         """
+        logger.debug(f"Chunking document: {document.file_name}")
         try:
             text = load_document_text(document)
         except FileNotFoundError:
+            logger.error(f"Document {document.file_name} not found.")
             raise FileNotFoundError(f"Document {document.file_name} not found.")
 
         # Define the headers to split on
@@ -59,10 +68,12 @@ class Chunker:
             headers_to_split_on.append(("##", "Header 2"))
             headers_to_split_on.append(("###", "Header 3"))
 
+        logger.debug(f"Splitting text into chunks with headers: {headers_to_split_on}")
         markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
         langchain_docs = markdown_splitter.split_text(text)
+        logger.debug(f"Split text into {len(langchain_docs)} chunks.")
 
-        # Create chunks
+        logger.debug(f"Creating chunks from {len(langchain_docs)} documents.")
         chunks = []
         for langchain_doc in langchain_docs:
             chunk = Chunk(parent_document=document,
@@ -71,11 +82,13 @@ class Chunker:
                             langchain_doc.page_content.encode()).hexdigest())
             
             # Create sentences
+            logger.debug(f"Creating sentences from chunk: {chunk.id}")
             chunk.sentences = []
             
             # Split text into sentences using regex
             # Look for sentence endings (.!?) followed by whitespace
             sentences_text = re.split(r'(?<=[.!?])\s+', chunk.text)
+            logger.debug(f"Split text into {len(sentences_text)} sentences.")
             
             for s_text in sentences_text:
                 if s_text.strip() != "":
@@ -84,4 +97,5 @@ class Chunker:
 
             chunks.append(chunk)
 
+        logger.info(f"Created {len(chunks)} chunks.")
         return chunks

@@ -1,3 +1,4 @@
+"""Models for the database."""
 from __future__ import annotations
 from typing import Optional
 from dataclasses import dataclass
@@ -52,3 +53,6 @@ class Chunk(ORMBase):
 
     # This is not a mapped column, but a list of sentences
     sentences: list["Sentence"]
+
+    def __str__(self) -> str:
+        return self.text
