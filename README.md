@@ -2,6 +2,30 @@
 
 A **Retrieval-Augmented Generation (RAG)** system built to provide context-aware responses for Dungeons & Dragons campaigns. This project indexes long-running campaign logs and injects relevant session history into LLM prompts via the Gemini CLI or MCP-compatible editors.
 
+## Architecture & Technology
+
+*   **Language:** Python (>=3.12)
+*   **Package Manager:** `uv`
+*   **Embeddings:** `intfloat/multilingual-e5-small` (optimized for Dutch & efficiency).
+*   **Storage Strategy (Parent-Child):**
+    *   **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
+    *   **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
+*   **Core Libraries:**
+    *   `langchain` / `langchain-huggingface`: For RAG abstractions.
+    *   `chromadb`: Vector Store.
+    *   `sqlalchemy`: ORM for SQLite.
+    *   `fastapi`: (Planned) REST API to handle concurrent access.
+
+### Planned System Design (Client/Server)
+
+To support multiple simultaneous interfaces (Gemini CLI Hook, MCP Server, Admin CLI) without file locking issues on the local SQLite/Chroma databases, the system will evolve into a client-server architecture:
+
+1.  **Backend (FastAPI):** Single "Gatekeeper" process managing all DB connections.
+2.  **Clients:**
+    *   **Admin CLI:** For adding/updating log files.
+    *   **Gemini Hook:** For injecting context into CLI chats.
+    *   **MCP Server:** For exposing tools to AI assistants (Claude, Cursor, etc.).
+
 ## 🧠 Core Concept: Parent-Child RAG
 
 To handle narrative data effectively, we use a **Parent-Child** retrieval strategy:
@@ -19,6 +43,7 @@ To handle narrative data effectively, we use a **Parent-Child** retrieval strate
 - **Dual-Store Architecture:**
     - **SQLite:** Stores the "Source of Truth" (Parent Texts).
     - **ChromaDB:** Stores the vectors (Child Embeddings + Pointers).
+- **Client/Server Model:** Central API ensuring safe concurrent access.
 - **Gemini CLI Integration:** (Planned) Automatically injects context into your terminal chat.
 - **MCP Server:** (Planned) Exposes RAG capabilities to Claude Desktop, Cursor, and Windsurf.
 

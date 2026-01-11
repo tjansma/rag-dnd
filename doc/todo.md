@@ -23,38 +23,38 @@
     - [ ] **Re-Index**: Call `store_document` logic (Chunk -> Embed -> Store) for the new content.
     - [ ] Update `Document` record in SQLite with new hash.
 
-## Hook API for integrating into Gemini CLI
-- [ ] **Create Entrypoint Script** (e.g., `hook.py` or entry in `main.py`)
-    - [ ] Accept input arguments (the user's prompt to Gemini).
-    - [ ] Run the `ParentChildRetriever` to find relevant D&D context.
-    - [ ] **Format Output**:
-        - Construct a "System Message" or "Context Block".
-        - Example format:
-          ```text
-          <campaign_context>
-          [Relevante Sessie Info 1...]
-          [Relevante Sessie Info 2...]
-          </campaign_context>
-          ```
-    - [ ] Print to `stdout` (so the Gemini CLI can capture and inject it).
+## Client/Server Architecture (Planned)
+**Reasoning:** To handle concurrency issues between long-running processes (MCP Server) and ephemeral ones (CLI Hooks, Admin CLI) accessing the same SQLite/ChromaDB files, we will move to a client-server model.
 
-## MCP Server API for integration into MCP Clients
-- [ ] **Create `server.py`** using the `mcp-python` SDK.
-- [ ] **Define Tools**:
-    - [ ] `search_logs(query: str)`: Exposes the `ParentChildRetriever` logic to the AI.
-- [ ] **Define Resources** (Optional):
-    - [ ] `dnd://current_state`: Returns the summary of the latet session.
-- [ ] **Transport**:
-    - [ ] Configure Standard IO (stdio) transport for local use with Claude Desktop / Cursor / Windsurf.
-- [ ] **Integration**:
-    - [ ] Add configuration to `claude_desktop_config.json` or equivalent.
+- [ ] **Implement Core REST API (`rag/server.py`)**
+    - [ ] Use `FastAPI` to create a lightweight server.
+    - [ ] **Endpoints**:
+        - [ ] `POST /query`: Accepts query text, returns relevant chunks.
+        - [ ] `POST /document`: Accepts file path/content, triggers indexing.
+        - [ ] `PUT /document`: Triggers update/re-indexing.
+        - [ ] `DELETE /document`: Removes document and embeddings.
+        - [ ] `GET /status`: Returns DB stats (count of docs/chunks).
+    - [ ] Manage the *single* connection to ChromaDB and SQLite here.
 
-## CLI management interface (adding, removing, updating documents)
-- [ ] **Using `click` or `typer` for CLI commands**:
-    - [ ] `add <file>`: Calls `store_document`.
-    - [ ] `update <file>`: Calls `update_document` (force check).
-    - [ ] `remove <file>`:
-        - Finds document by name.
-        - Removes from SQLite and ChromaDB components.
-    - [ ] `list`: Shows all indexed files + last update timestamp/hash.
-    - [ ] `search <query>`: Quick CLI test for the Retriever.
+- [ ] **Refactor Integrations to use API**
+    - [ ] **MCP Server**: Becomes a thin client that calls the REST API.
+    - [ ] **Gemini CLI Hook**: A script that sends a generic `POST /query` to the running server.
+    - [ ] **CLI Admin Tool**: A `typer`/`click` app that sends commands to the REST API.
+
+## Update logic (re-adding of existing documents)
+- [ ] **Implement `update_document(filename: str)` in `rag/manager.py`**:
+    - [ ] **Check Hash**: Compare `sha256` of file on disk with `file_hash` in SQLite.
+        - If match: Do nothing (idempotent).
+        - If mismatch: Proceed to update.
+    - [ ] **Cleanup Old Data**:
+        - Query SQLite for all `Chunk`s associated with the `Document`.
+        - Extract `chunk_id`s.
+        - Delete from ChromaDB (`collection.delete(where={"chunk_id": ...})`).
+        - Delete `Chunk`s and `Sentences` from SQLite.
+    - [ ] **Re-Index**: Call `store_document` logic (Chunk -> Embed -> Store) for the new content.
+    - [ ] Update `Document` record in SQLite with new hash.
+
+## Legacy / Direct Library Tasks (On Hold/Deprecated by Server plan)
+- [ ] *Create Entrypoint Script (Hook)* (Superseded by API client approach)
+- [ ] *Create `server.py` MCP* (Superseded by API client approach)
+- [ ] *CLI management interface* (Superseded by API client approach)

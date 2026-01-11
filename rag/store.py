@@ -70,7 +70,7 @@ class VectorStore:
         for sentence in chunk.sentences:
             sentence.stored = True
 
-    def query_chunk_ids(self, query_embedding: list[float], k: int = 5) -> tuple[int]:
+    def query_chunk_ids(self, query_embedding: list[float], k: int = 5) -> tuple[int, ...]:
         """
         Query the vector store.
         
@@ -79,7 +79,7 @@ class VectorStore:
             k (int): The number of results to return.
             
         Returns:
-            tuple[int]: The relevant chunk ids.
+            tuple[int, ...]: The relevant chunk ids.
         """
         logger.info(f"Querying vector store for {k} results.")
         results = self.collection.query(
@@ -99,3 +99,21 @@ class VectorStore:
         
         logger.debug(f"Relevant chunk ids: {relevant_chunk_ids}")
         return tuple(set(relevant_chunk_ids))
+
+    def delete_chunks_by_id(self, chunk_ids: tuple[int, ...]):
+        """
+        Delete chunks from the vector store.
+        
+        Args:
+            chunk_ids (tuple[int, ...]): The ids of the chunks to delete.
+            
+        Returns:
+            None
+        """
+        logger.debug(f"Deleting chunks: {chunk_ids}")
+        for chunk_id in chunk_ids:
+            logger.debug(f"\tDeleting chunk: {chunk_id}")
+            self.collection.delete(
+                where={"chunk_id": chunk_id}
+            )
+        logger.info(f"Deleted embeddings for {len(chunk_ids)} chunks.")

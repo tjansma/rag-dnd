@@ -27,9 +27,9 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
     - E5 Embedding logic with Prefixes (`rag/embeddings.py`).
     - Storage Manager (`rag/manager.py`) orchestrating SQLite + Chroma.
     - Retrieval Logic (`rag/manager.py`).
-- **In Progress:**
-    - CLI Management Tools.
-    - Integration Layers (Hooks & MCP).
+- **Planned (Architectural Pivot):**
+    - **FastAPI Backend:** Central server to manage DB/VectorStore access and prevent locking issues.
+    - **Thin Clients:** Refactoring planned CLI tools, MCP server, and Hooks to consume the new REST API.
 
 ## Setup & Usage
 
@@ -50,4 +50,5 @@ python main.py
 ## Documentation
 
 - **`doc/todo.md`**: Detailed technical roadmap and remaining tasks.
-- **`doc/llms.txt`**: References for CLI integration.
+- **`doc/llms.txt`**: References for Gemini CLI integration.
+- **`doc/fastmcp.txt`**: Documentation for FastMCP module.

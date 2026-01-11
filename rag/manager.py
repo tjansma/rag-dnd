@@ -122,3 +122,29 @@ def query(query: str, config: Config=Config()) -> list[Chunk]:
     
     logger.info(f"Retrieved {len(chunks)} relevant chunks.")
     return chunks
+
+def delete_document(filename: str, config: Config=Config()) -> None:
+    """
+    Delete a document from the database.
+    
+    Args:
+        filename (str): The path to the document.
+        config (Config): The configuration to use.
+    """
+    logger.info(f"Deleting document: {filename}")
+    session = get_session()
+    document = session.query(Document).filter_by(file_name=filename).first()
+    if document is None:
+        logger.error(f"Document {filename} not found.")
+        raise FileNotFoundError(f"Document {filename} not found.")
+
+    vector_store = VectorStore(config)
+    chunk_ids = tuple(chunk.id for chunk in document.chunks)
+    vector_store.delete_chunks_by_id(chunk_ids)
+
+    # INFO: Chunks are deleted by cascade
+    logger.debug(f"Deleting document: {document}")
+    session.delete(document)
+    session.commit()
+    session.close()
+    logger.info(f"Deleted document: {filename}")

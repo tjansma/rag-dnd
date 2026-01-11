@@ -28,8 +28,12 @@ class Document(ORMBase):
     file_hash: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
     collection_id: orm.Mapped[int] = orm.mapped_column(sa.Integer, sa.ForeignKey("collections.id"))
     
-    collection: orm.Mapped["Collection"] = orm.relationship(back_populates="documents")
-    chunks: orm.Mapped[list["Chunk"]] = orm.relationship(back_populates="parent_document")
+    collection: orm.Mapped["Collection"] = orm.relationship(
+        back_populates="documents")
+    chunks: orm.Mapped[list["Chunk"]] = orm.relationship(
+        back_populates="parent_document",
+        cascade="all, delete-orphan"
+    )
 
 
 @dataclass
