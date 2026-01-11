@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from config import Config
 
 from .database import get_session, init_db
-from .embeddings import Embedding
+from .embeddings import get_embedding_instance
 from .models import Document, Collection, Chunk
 from .store import VectorStore
 from .chunker import Chunker
@@ -71,7 +71,7 @@ def store_document(filename: str, config: Config=Config()) -> None:
     session.commit()
 
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
-    embedder = Embedding(config.embeddings_model)
+    embedder = get_embedding_instance()
     logger.debug(f"Connecting to vector store: {config.vector_database}")
     vector_store = VectorStore(config)
 
@@ -99,7 +99,7 @@ def query(query: str, config: Config=Config()) -> list[Chunk]:
     logger.info(f"Querying vector store for: {query}")
     # 1. Embed the query
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
-    embedder = Embedding(config.embeddings_model)
+    embedder = get_embedding_instance()
     logger.debug(f"Embedding query: {query}")
     query_embedding = embedder.embed_query(query)
 
@@ -148,3 +148,38 @@ def delete_document(filename: str, config: Config=Config()) -> None:
     session.commit()
     session.close()
     logger.info(f"Deleted document: {filename}")
+
+
+def update_document(filename: str, config: Config=Config()) -> None:
+    """
+    Update a document in the database.
+    
+    Args:
+        filename (str): The path to the document.
+        config (Config): The configuration to use.
+    """
+    logger.info(f"Updating document: {filename}")
+    if not os.path.exists(filename):
+        logger.error(f"File {filename} not found.")
+        raise FileNotFoundError(f"File {filename} not found.")
+    
+    file_hash = sha256(open(filename).read().encode()).hexdigest()
+    
+    session = get_session()
+    document = session.query(Document).filter_by(file_name=filename).first()
+    if document is None:
+        logger.error(f"Document {filename} not found in database.")
+        raise FileNotFoundError(f"Document {filename} not found in database.")
+    
+    if document.file_hash == file_hash:
+        logger.warning(f"Document {filename} is already up to date.")
+        return
+    
+    session.close()
+
+    logger.debug(f"Deleting document: {filename}")
+    delete_document(filename, config)
+    logger.debug(f"Storing document: {filename}")
+    store_document(filename, config)
+
+    logger.info(f"Updated document: {filename}")

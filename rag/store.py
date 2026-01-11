@@ -4,7 +4,6 @@ import logging
 import chromadb
 
 from config import Config
-from .embeddings import Embedding
 from .models import Chunk
 
 logger = logging.getLogger(__name__)

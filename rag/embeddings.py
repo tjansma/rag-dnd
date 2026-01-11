@@ -7,9 +7,11 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 from config import Config
 
-from . import Chunk
+from .models import Chunk
 
 logger = logging.getLogger(__name__)
+
+embedding_instance = None
 
 class Embedding:
     """
@@ -81,3 +83,20 @@ class Embedding:
         """
         logger.debug(f"Invoking embedding for query: 'query: {query}'")
         return self.embedding.embed_query(f"query: {query}")
+
+
+def get_embedding_instance() -> Embedding:
+    """
+    Get the default embedding instance as specified in the config.
+    
+    Returns:
+        Embedding: The embedding instance.
+    """
+    global embedding_instance
+    logger.debug("Getting embedding instance")
+    if embedding_instance is None:
+        logger.debug("Initializing embedding instance")
+        embedding_instance = Embedding()
+    else:
+        logger.debug("Using existing embedding instance")
+    return embedding_instance

@@ -1,10 +1,9 @@
 """Main entry point for the application."""
-from rag.manager import store_document
 import logging
 import sys
 
 from config import Config
-from rag import query, delete_document
+from rag import query, delete_document, update_document, store_document
 
 
 def setup_logging(config: Config) -> None:
@@ -44,9 +43,7 @@ def main():
 
     chunks = query("What did Jams do?")
 
-    for chunk in chunks:
-        print(f"Chunk {chunk.id}: {chunk}")
-        print("----------------------------------")
+    update_document(config.session_log)
 
     delete_document(config.session_log)
 
