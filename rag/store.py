@@ -48,26 +48,25 @@ class VectorStore:
 
         for index, sentence in enumerate(chunk.sentences):
             logger.debug(f"\tAdding sentence {index}: {sentence.text}")
-            if not sentence.stored:
-                if sentence.embedding_vector is None:
-                    raise ValueError("Sentence embedding vector is None.")
-                
-                ids.append(f"{chunk.id}_{index}")
-                texts.append(sentence.text)
-                metadatas.append({"chunk_id": chunk.id})
-                embeddings.append(sentence.embedding_vector)    # type: ignore
+            if sentence.embedding_vector is None:
+                raise ValueError("Sentence embedding vector is None.")
+            
+            ids.append(f"{chunk.id}_{index}")
+            texts.append(sentence.text)
+            metadatas.append({"chunk_id": chunk.id})
+            embeddings.append(sentence.embedding_vector)    # type: ignore
 
         logger.debug(f"Adding {len(ids)} sentences to vector store.")
-        self.collection.add(
-            ids=ids,
-            documents=texts,
-            metadatas=metadatas,
-            embeddings=embeddings
-        )
-
-        logger.debug(f"Marking {len(ids)} sentences as stored.")
-        for sentence in chunk.sentences:
-            sentence.stored = True
+        try:
+            self.collection.add(
+                ids=ids,
+                documents=texts,
+                metadatas=metadatas,
+                embeddings=embeddings
+            )
+        except Exception as e:
+            logger.error(f"Failed to add chunk to vector store: {e}")
+            raise
 
     def query_chunk_ids(self, query_embedding: list[float], k: int = 5) -> tuple[int, ...]:
         """

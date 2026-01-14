@@ -41,7 +41,6 @@ class Sentence:
     chunk: "Chunk"
     text: str
     embedding_vector: Optional[list[float]] = None
-    stored: bool = False
 
 
 class Chunk(ORMBase):
@@ -60,3 +59,9 @@ class Chunk(ORMBase):
 
     def __str__(self) -> str:
         return self.text
+
+
+@dataclass
+class QueryResult:
+    text: str
+    source_document: str

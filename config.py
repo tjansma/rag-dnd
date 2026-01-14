@@ -13,15 +13,18 @@ class Config:
         self.api_ip: str = os.getenv("RAG_DND_API_IP") or "127.0.0.1"
         self.api_port: int = int(os.getenv("RAG_DND_API_PORT") or 8000)
         self.embeddings_model: str = os.getenv("RAG_DND_EMBEDDINGS_MODEL") or \
-            "text-embedding-ada-002"
+            "intfloat/multilingual-e5-small"
         self.embeddings_provider: str = \
             os.getenv("RAG_DND_EMBEDDINGS_PROVIDER") or "HuggingFace"
+        self.embedding_device: str = os.getenv("RAG_DND_EMBEDDINGS_DEVICE") or "cpu"
         self.vector_database: str = os.getenv("RAG_DND_VECTORDB") or \
             "data/chroma"
         self.content_database_url: str = os.getenv("RAG_DND_CONTENTDB_URL") or \
             "sqlite://"
-        self.collection_name: str = os.getenv("RAG_DND_COLLECTION_NAME") or \
-            "rag_dnd"
+
+        model_name_slug = self.embeddings_model.replace("/", "_")
+        self.collection_name: str = \
+            f'{os.getenv("RAG_DND_COLLECTION_PREFIX") or "rag_dnd"}_{model_name_slug}'
         self.log_level: str = os.getenv("RAG_DND_LOG_LEVEL") or "WARNING"
         self.log_file: str = os.getenv("RAG_DND_LOG_FILE") or "log/app.log"
 

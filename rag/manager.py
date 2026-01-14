@@ -7,13 +7,13 @@ import logging
 from pathlib import Path
 from sqlite3 import DatabaseError
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from config import Config
 
 from .database import get_session, init_db
 from .embeddings import get_embedding_instance
-from .models import Document, Collection, Chunk
+from .models import Document, Collection, Chunk, QueryResult
 from .store import VectorStore
 from .chunker import Chunker
 
@@ -93,7 +93,7 @@ def store_document(filename: str, config: Config=Config()) -> None:
     session.close()
     logger.info(f"Stored document: {filename} with {len(chunks)} chunks.")
 
-def query(query: str, config: Config=Config()) -> list[Chunk]:
+def query(query: str, config: Config=Config()) -> list[QueryResult]:
     """
     Query the vector store.
     
@@ -102,7 +102,7 @@ def query(query: str, config: Config=Config()) -> list[Chunk]:
         config (Config): The configuration to use.
         
     Returns:
-        list[Chunk]: The relevant chunks.
+        list[QueryResult]: The relevant chunks.
     """
     logger.info(f"Querying vector store for: {query}")
     # 1. Embed the query
@@ -121,15 +121,23 @@ def query(query: str, config: Config=Config()) -> list[Chunk]:
     # INFO potential risk of logging sensitive information (password in URL)
     logger.debug(f"Retrieving relevant chunks from database: {config.content_database_url}")
     session = get_session()
-    chunks = session.query(Chunk).filter(Chunk.id.in_(relevant_chunk_ids)).all()
+    chunks = session.query(Chunk)\
+        .options(joinedload(Chunk.parent_document))\
+        .filter(Chunk.id.in_(relevant_chunk_ids))\
+        .all()
     # Detach objects from session so they can be used after close()
     # WARNING: Lazy-loaded relationships (like chunk.parent_document) will FAIL 
     # if accessed after this point. Use joinedload() in the query if needed.
     session.expunge_all()
-    session.close()
+    
     
     logger.info(f"Retrieved {len(chunks)} relevant chunks.")
-    return chunks
+
+    results = []
+    for chunk in chunks:
+        results.append(QueryResult(text=chunk.text, 
+                       source_document=chunk.parent_document.file_name))
+    return results
 
 def delete_document(filename: str, config: Config=Config()) -> None:
     """

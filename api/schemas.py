@@ -18,6 +18,4 @@ class DeleteRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     text: str
-
-class SuccessResult(BaseModel):
-    success: bool
+    source_document: str

@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 import rag
 
 from .schemas import StoreRequest, QueryRequest, UpdateRequest, \
-    DeleteRequest, QueryResponse, SuccessResult
+    DeleteRequest, QueryResponse
 
 router = APIRouter()
 
@@ -43,5 +43,7 @@ async def delete_document(request: DeleteRequest):
         raise HTTPException(status_code=404, detail="Document not found.")
 
 @router.post("/rag_query")
-async def query_rag(request: QueryRequest):
-    return rag.query(request.query)
+async def query_rag(request: QueryRequest) -> list[QueryResponse]:
+    results = rag.query(request.query)
+    return [ QueryResponse(text=result.text,
+             source_document=result.source_document) for result in results]

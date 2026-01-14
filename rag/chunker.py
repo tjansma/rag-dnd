@@ -64,7 +64,7 @@ class Chunker:
         ]
         if self.strategy == "heading2":
             headers_to_split_on.append(("##", "Header 2"))
-        if self.strategy == "heading3":
+        elif self.strategy == "heading3":
             headers_to_split_on.append(("##", "Header 2"))
             headers_to_split_on.append(("###", "Header 3"))
 
