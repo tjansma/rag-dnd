@@ -10,11 +10,16 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
 
 *   **Language:** Python (>=3.12)
 *   **Package Manager:** `uv`
-*   **Embeddings:** `intfloat/multilingual-e5-small` (optimized for Dutch & efficiency).
+*   **API:** FastAPI (Backend Server)
+*   **Embeddings:** 
+    *   `jinaai/jina-embeddings-v3` (SOTA 8192-token context, GPU accelerated).
+    *   Fallback: `intfloat/multilingual-e5-base`.
+*   **Hardware Acceleration:** NVIDIA CUDA 12.6 support (torch 2.9.1+cu126).
 *   **Storage Strategy (Parent-Child):**
     *   **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
     *   **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
 *   **Core Libraries:**
+    *   `fastapi`: REST API for concurrent access.
     *   `langchain` / `langchain-huggingface`: For RAG abstractions.
     *   `chromadb`: Vector Store.
     *   `sqlalchemy`: ORM for SQLite.
@@ -22,29 +27,45 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
 ## Current Status (Jan 2026)
 
 - **Implemented:**
-    - Markdown Header-based Chunking (`rag/chunker.py`).
-    - Smart Sentence Splitting (`re` based).
-    - E5 Embedding logic with Prefixes (`rag/embeddings.py`).
-    - Storage Manager (`rag/manager.py`) orchestrating SQLite + Chroma.
-    - Retrieval Logic (`rag/manager.py`).
-- **Planned (Architectural Pivot):**
-    - **FastAPI Backend:** Central server to manage DB/VectorStore access and prevent locking issues.
-    - **Thin Clients:** Refactoring planned CLI tools, MCP server, and Hooks to consume the new REST API.
+    - **FastAPI Backend (`api/`):** Central server managing DB access.
+    - **Jina V3 Integration:** GPU-accelerated embeddings with `trust_remote_code=True`.
+    - **Automatic Versioning:** ChromaDB collections are versioned by model name (`rag_dnd_jinaai_...`).
+    - **RAG Core (`rag/`):**
+        - Markdown Header-based Chunking (`rag/chunker.py`).
+        - Smart Sentence Splitting.
+        - Storage Manager (`rag/manager.py`) orchestrating SQLite + Chroma.
+- **Planned:**
+    - **Thin Clients:** CLI tools, MCP server, and Hooks to consume the REST API.
 
 ## Setup & Usage
 
 ### Installation
 
+Requires a NVIDIA GPU for optimal performance.
+
 ```bash
+# 1. Install dependencies (auto-detects CUDA 12.6)
 uv sync
+
+# 2. Configure .env (optional, defaults provided in config.py)
+# RAG_DND_EMBEDDINGS_MODEL=jinaai/jina-embeddings-v3
+# RAG_DND_EMBEDDINGS_DEVICE=cuda
 ```
 
-### Indexing Data
+### Running the Server
 
-To parse and index the current log file (`config.session_log`):
-
+Start the API server:
 ```bash
-python main.py
+uv run api
+```
+
+### Indexing Data (via API)
+
+Use CURL or Postman to ingest logs:
+```bash
+curl -X POST "http://localhost:8000/document" \
+     -H "Content-Type: application/json" \
+     -d '{"file_path": "data/session_log.md"}'
 ```
 
 ## Documentation
