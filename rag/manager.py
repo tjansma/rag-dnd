@@ -5,6 +5,7 @@ import os
 from hashlib import sha256
 import logging
 from pathlib import Path
+from sqlite3 import DatabaseError
 
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ from .store import VectorStore
 from .chunker import Chunker
 
 logger = logging.getLogger(__name__)
+
 
 def ensure_collection(session: Session, collection_name: str) -> Collection:
     """
@@ -65,10 +67,16 @@ def store_document(filename: str, config: Config=Config()) -> None:
     logger.debug(f"Chunked document into {len(chunks)} chunks.")
 
     logger.debug(f"Adding document to database.")
-    session.add(document)
-    logger.debug(f"Adding chunks to database.")
-    session.add_all(chunks)
-    session.commit()
+    try:
+        session.add(document)
+
+        logger.debug(f"Adding chunks to database.")
+        session.add_all(chunks)
+        session.commit()
+    except Exception as e:
+        logger.error(f"Error adding '{filename}' to database: {e}")
+        session.rollback()
+        raise
 
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
     embedder = get_embedding_instance()

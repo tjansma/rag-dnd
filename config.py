@@ -10,8 +10,8 @@ class Config:
         """Initialize the configuration."""
         self.session_log: str = os.getenv("RAG_DND_SESSION_LOG") or \
             "data/session_log.txt"
-        self.listen_ip: str = os.getenv("RAG_DND_LISTEN_IP") or "127.0.0.1"
-        self.listen_port: int = int(os.getenv("RAG_DND_LISTEN_PORT") or 8000)
+        self.api_ip: str = os.getenv("RAG_DND_API_IP") or "127.0.0.1"
+        self.api_port: int = int(os.getenv("RAG_DND_API_PORT") or 8000)
         self.embeddings_model: str = os.getenv("RAG_DND_EMBEDDINGS_MODEL") or \
             "text-embedding-ada-002"
         self.embeddings_provider: str = \
@@ -25,6 +25,12 @@ class Config:
         self.log_level: str = os.getenv("RAG_DND_LOG_LEVEL") or "WARNING"
         self.log_file: str = os.getenv("RAG_DND_LOG_FILE") or "log/app.log"
 
+        self.api_auto_reload = False
+        api_auto_reload = os.getenv("RAG_DND_API_AUTO_RELOAD")
+        if api_auto_reload and \
+           (api_auto_reload.upper() == "TRUE" or api_auto_reload == "1"):
+            self.api_auto_reload = True
+
     def __repr__(self) -> str:
         """Return a string representation of the configuration."""
-        return f"Config(session_log={self.session_log}, listen_ip={self.listen_ip}, listen_port={self.listen_port}, embeddings_model={self.embeddings_model}, embeddings_provider={self.embeddings_provider}, vector_database={self.vector_database}, content_database_url={self.content_database_url}, collection_name={self.collection_name}, log_level={self.log_level}, log_file={self.log_file})"
+        return f"Config(session_log={self.session_log}, api_ip={self.api_ip}, api_port={self.api_port}, embeddings_model={self.embeddings_model}, embeddings_provider={self.embeddings_provider}, vector_database={self.vector_database}, content_database_url={self.content_database_url}, collection_name={self.collection_name}, log_level={self.log_level}, log_file={self.log_file})"
