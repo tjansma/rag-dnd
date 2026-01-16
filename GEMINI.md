@@ -36,8 +36,7 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **Clients:**
     - **CLI:** `rag-cli.py` for document management.
     - **Gemini Hook:** `rag-hook.py` for context injection.
-- **Planned:**
-  - **MCP Server:** To expose RAG capabilities to IDEs like Cursor/Claude.
+    - **MCP Server:** `rag-mcp-server.py` for IDE integration.
 
 ## Setup & Usage
 
@@ -94,6 +93,26 @@ uv run rag-cli.py add data/session_log.md
 # Search manually
 uv run rag-cli.py search "Wie is Nezznar?"
 ```
+
+### 5. MCP Server Setup
+
+To use the RAG system in Cursor or Claude Desktop:
+
+1.  **Configure:** Add the server to your IDE's MCP settings (e.g., `claude_desktop_config.json` or `.gemini/settings.json`).
+
+    ```json
+    "mcpServers": {
+      "rag-dnd": {
+        "command": "uv",
+        "args": [
+          "--directory",
+          "C:\\Development\\src\\_AI\\rag_dnd",
+          "run",
+          "rag-mcp-server.py"
+        ]
+      }
+    }
+    ```
 
 ## Documentation
 

@@ -18,5 +18,16 @@
         ]
       }
     ]
+  },
+  "mcpServers": {
+    "rag-mcp": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\Development\\src\\_AI\\rag_dnd",
+        "run",
+        "rag-mcp-server.py"
+      ]
+    }
   }
 }
