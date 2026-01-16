@@ -11,7 +11,7 @@ class Config:
         self.session_log: str = os.getenv("RAG_DND_SESSION_LOG") or \
             "data/session_log.txt"
         self.api_ip: str = os.getenv("RAG_DND_API_IP") or "127.0.0.1"
-        self.api_port: int = int(os.getenv("RAG_DND_API_PORT") or 8000)
+        self.api_port: int = int(os.getenv("RAG_DND_API_PORT") or 8001)
         self.embeddings_model: str = os.getenv("RAG_DND_EMBEDDINGS_MODEL") or \
             "intfloat/multilingual-e5-small"
         self.embeddings_provider: str = \

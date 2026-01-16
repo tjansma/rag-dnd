@@ -41,9 +41,9 @@
     - [ ] **CLI Admin Tool**: A `typer`/`click` app that sends commands to the REST API.
 
 ## Pending Tasks
-- [ ] **CLI Interface**: `add`, `remove`, `update`, `search` commands using `typer`.
+- [x] **CLI Interface**: `add`, `remove`, `update`, `search` commands using `typer`.
 - [ ] **MCP Server**: Implement `search_logs` tool calling the API.
-- [ ] **Gemini Hook**: Implement prompt injection logic.
+- [x] **Gemini Hook**: Implement prompt injection logic.
 
 ## Legacy / Direct Library Tasks (On Hold/Deprecated by Server plan)
 - [x] *Create Entrypoint Script (Hook)* (Superseded by API client approach)

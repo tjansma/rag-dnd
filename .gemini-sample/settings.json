@@ -1,0 +1,22 @@
+{
+  "tools": {
+    "enableHooks": true
+  },
+  "hooks": {
+    "disabled": [],
+    "enabled": true,
+    "notifications": true,
+    "BeforeAgent": [
+      {
+        "hooks": [ 
+          {
+            "name": "dnd-rag-context",
+            "type": "command",
+            "command": "uv --directory C:\\Development\\src\\_AI\\rag_dnd run rag-hook.py",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
+  }
+}
