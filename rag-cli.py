@@ -7,8 +7,6 @@ from rich.table import Table
 import os
 from typing import Optional
 import sys
-import subprocess
-from rich.panel import Panel
 
 from rag_client import RAGClient, list_sessions, get_session_transcript, session_to_markdown
 from client_config import ClientConfig
@@ -16,9 +14,11 @@ from client_config import ClientConfig
 app = typer.Typer(help="D&D RAG CLI Management Tool",
                   rich_help_panel="D&D RAG CLI Management Tool",
                   no_args_is_help=True)
+llm_app = typer.Typer(help="Manage LLM", no_args_is_help=True)
 rag_app = typer.Typer(help="Manage RAG knowledge base", no_args_is_help=True)
 session_app = typer.Typer(help="Manage session transcripts", no_args_is_help=True)
 
+app.add_typer(llm_app, name="llm")
 app.add_typer(rag_app, name="rag")
 app.add_typer(session_app, name="session")
 
@@ -201,6 +201,23 @@ def session_summarize(id: int,
     try:
         summary = transcript_summarize(id, prompt_file, output, append)
         console.print(summary)
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@llm_app.command("chat")
+def llm_chat(prompt: str):
+    """
+    Chat with the LLM.
+
+    Args:
+        prompt (str): The prompt to send to the LLM.
+
+    Returns:
+        None
+    """
+    try:
+        response = client.chat(prompt)
+        console.print(response)
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 

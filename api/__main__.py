@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Fix for Windows console encoding (UnicodeEncodeError)
+if os.name == 'nt':
+    sys.stdout.reconfigure(encoding='utf-8')    # pyrefly: ignore
+    sys.stderr.reconfigure(encoding='utf-8')    # pyrefly: ignore
+
 from config import Config
 from log import setup_logging
 

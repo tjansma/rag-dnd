@@ -92,3 +92,23 @@ class RAGClient:
         
         data = response.json()
         return [QueryResult(**item) for item in data]
+
+    def chat(self, query_text: str) -> str:
+        """
+        Chat with the RAG system.
+        
+        Args:
+            query_text: The query text.
+            
+        Returns:
+            str: The response from the RAG system.
+            
+        Raises:
+            requests.HTTPError: If the request fails.
+        """
+        url = f"{self.base_url}/llm_generate"
+        payload = [{"role": "user", "content": query_text}]
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        
+        return response.json()

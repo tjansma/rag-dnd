@@ -1,6 +1,6 @@
 """Coordinating the storage of documents, chunks, and sentences."""
 import logging
-from typing import cast
+from typing import Any, Mapping, cast
 
 import chromadb
 
@@ -43,10 +43,10 @@ class VectorStore:
             None
         """
         logger.info(f"Adding chunk: {chunk.id}")
-        ids = []
-        texts = []
-        metadatas = []
-        embeddings = []
+        ids: list[str] = []
+        texts: list[str] = []
+        metadatas: list[Mapping[str, Any]] = []
+        embeddings: list[list[float]] = []
 
         for index, sentence in enumerate(chunk.sentences):
             logger.debug(f"\tAdding sentence {index}: {sentence.text}")
@@ -64,7 +64,7 @@ class VectorStore:
                 ids=ids,
                 documents=texts,
                 metadatas=metadatas,
-                embeddings=embeddings
+                embeddings=cast(Any, embeddings)
             )
         except Exception as e:
             logger.error(f"Failed to add chunk to vector store: {e}")

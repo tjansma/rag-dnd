@@ -4,8 +4,6 @@ Manager for coordinating the storage of documents, chunks, and sentences.
 import os
 from hashlib import sha256
 import logging
-from pathlib import Path
-from sqlite3 import DatabaseError
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -13,6 +11,7 @@ from config import Config
 
 from .database import get_session, init_db
 from .embeddings import get_embedding_instance
+from .llm import get_llm
 from .models import Document, Collection, Chunk, QueryResult
 from .store import VectorStore
 from .chunker import Chunker
@@ -199,3 +198,19 @@ def update_document(filename: str, config: Config=Config()) -> None:
     store_document(filename, config)
 
     logger.info(f"Updated document: {filename}")
+
+def prompt_llm(prompt: list[dict], config: Config=Config()) -> str:
+    """
+    Prompt the LLM.
+    
+    Args:
+        prompt (list[dict]): The prompt to send to the LLM.
+        config (Config): The configuration to use.
+        
+    Returns:
+        str: The response from the LLM.
+    """
+    logger.debug(f"Prompting LLM with: {prompt}")
+    llm = get_llm(config.query_expansion_model, config.query_expansion_device)
+    text = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+    return llm.generate(text)

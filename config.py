@@ -33,6 +33,17 @@ class Config:
         self.log_level: str = os.getenv("RAG_DND_LOG_LEVEL") or "WARNING"
         self.log_file: str = os.getenv("RAG_DND_LOG_FILE") or "log/app.log"
 
+        # Query expansion settings
+        self.query_expansion_enabled: bool = \
+            str(os.getenv("RAG_DND_QUERY_EXPANSION_ENABLED", "False")).upper() == "TRUE" or \
+            str(os.getenv("RAG_DND_QUERY_EXPANSION_ENABLED", "False")) == "1"
+        self.query_expansion_model: str = \
+            os.getenv("RAG_DND_QUERY_EXPANSION_MODEL") or ""
+        self.query_expansion_provider: str = \
+            os.getenv("RAG_DND_QUERY_EXPANSION_PROVIDER") or ""
+        self.query_expansion_device: str = \
+            os.getenv("RAG_DND_QUERY_EXPANSION_DEVICE") or "cpu"
+
         self.api_auto_reload = False
         api_auto_reload = os.getenv("RAG_DND_API_AUTO_RELOAD")
         if api_auto_reload and \

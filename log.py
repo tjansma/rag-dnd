@@ -10,6 +10,7 @@ def setup_logging(config: Config) -> None:
     Args:
         config: The configuration object.
     """
+    # Ensure log level is valid
     log_level = logging.getLevelNamesMapping()[config.log_level]
 
     logger = logging.getLogger()
@@ -18,7 +19,7 @@ def setup_logging(config: Config) -> None:
     # Console output
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setLevel(log_level)
-    stdout_format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+    stdout_format = logging.Formatter(u"%(name)s - %(levelname)s - %(message)s")
     stdout_handler.setFormatter(stdout_format)
     logger.addHandler(stdout_handler)
 
@@ -26,6 +27,6 @@ def setup_logging(config: Config) -> None:
     file_handler = logging.FileHandler(config.log_file)
     file_handler.setLevel(log_level)
     file_format = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        u"%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(file_format)
     logger.addHandler(file_handler)

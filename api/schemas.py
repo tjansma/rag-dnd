@@ -19,3 +19,7 @@ class DeleteRequest(BaseModel):
 class QueryResponse(BaseModel):
     text: str
     source_document: str
+
+class LLMMessage(BaseModel):
+    role: str
+    content: str

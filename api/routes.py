@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 import rag
 
 from .schemas import StoreRequest, QueryRequest, UpdateRequest, \
-    DeleteRequest, QueryResponse
+    DeleteRequest, QueryResponse, LLMMessage
 
 router = APIRouter()
 
@@ -47,3 +47,8 @@ async def query_rag(request: QueryRequest) -> list[QueryResponse]:
     results = rag.query(request.query)
     return [ QueryResponse(text=result.text,
              source_document=result.source_document) for result in results]
+
+@router.post("/llm_generate")
+async def generate_llm(request: list[LLMMessage]) -> str:
+    messages = [ { "role": message.role, "content": message.content } for message in request ]
+    return rag.prompt_llm(messages)

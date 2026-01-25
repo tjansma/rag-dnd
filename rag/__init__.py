@@ -1,3 +1,3 @@
 from .manager import store_document, ensure_collection, query, \
-    delete_document, update_document
+    delete_document, update_document, prompt_llm
 from .models import QueryResult
