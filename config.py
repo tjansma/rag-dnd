@@ -10,15 +10,20 @@ class Config:
         """Initialize the configuration."""
         self.session_log: str = os.getenv("RAG_DND_SESSION_LOG") or \
             "data/session_log.txt"
+        self.transcript_database: str = os.getenv("RAG_DND_TRANSCRIPT_DB") or \
+            "data/transcript.db"
         self.api_ip: str = os.getenv("RAG_DND_API_IP") or "127.0.0.1"
         self.api_port: int = int(os.getenv("RAG_DND_API_PORT") or 8001)
         self.embeddings_model: str = os.getenv("RAG_DND_EMBEDDINGS_MODEL") or \
             "intfloat/multilingual-e5-small"
         self.embeddings_provider: str = \
             os.getenv("RAG_DND_EMBEDDINGS_PROVIDER") or "HuggingFace"
-        self.embedding_device: str = os.getenv("RAG_DND_EMBEDDINGS_DEVICE") or "cpu"
+        self.embedding_device: str = os.getenv("RAG_DND_EMBEDDINGS_DEVICE") or \
+            "cpu"
         self.vector_database: str = os.getenv("RAG_DND_VECTORDB") or \
             "data/chroma"
+        self.relevance_threshold: float = \
+            float(os.getenv("RAG_DND_RELEVANCE_THRESHOLD") or 0.5)
         self.content_database_url: str = os.getenv("RAG_DND_CONTENTDB_URL") or \
             "sqlite://"
 

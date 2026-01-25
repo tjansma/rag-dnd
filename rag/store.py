@@ -1,5 +1,6 @@
 """Coordinating the storage of documents, chunks, and sentences."""
 import logging
+from typing import cast
 
 import chromadb
 
@@ -28,7 +29,8 @@ class VectorStore:
                                                     anonymized_telemetry=False))
 
         logger.debug(f"Initializing collection: {config.collection_name}")
-        self.collection = self.client.get_or_create_collection(name=config.collection_name)
+        self.collection = self.client.get_or_create_collection(
+            name=config.collection_name)
 
     def add_chunk(self, chunk: Chunk) -> None:
         """
@@ -86,14 +88,19 @@ class VectorStore:
         )
         logger.debug(f"Query results: {results}")
 
-        # TODO Retrieve the relevant chunks from the results
+        # Retrieve the relevant chunks from the results
         metadatas = results["metadatas"]
-        if not metadatas:
+        distances = results["distances"]
+        if not metadatas or not distances:
             return tuple(())
-        relevant_chunk_ids = []
-        for metadata in metadatas:
-            for chunk_id in metadata:
-                relevant_chunk_ids.append(chunk_id["chunk_id"])
+        
+        relevant_chunk_ids: list[int] = []
+        for meta_list, distance_list in zip(metadatas, distances):
+            for metadata, distance in zip(meta_list, distance_list):
+                if distance <= self.config.relevance_threshold:
+                    relevant_chunk_ids.append(cast(int, metadata["chunk_id"]))
+                else:
+                    logger.debug(f"Skipping chunk {metadata['chunk_id']} with distance {distance:.4f} > {self.config.relevance_threshold}")
         
         logger.debug(f"Relevant chunk ids: {relevant_chunk_ids}")
         return tuple(set(relevant_chunk_ids))

@@ -1,0 +1,46 @@
+DM, we pauzeren / sluiten de sessie af. Kun je alsjeblieft een **bijgewerkt en cumulatief chronologisch logboek** genereren?
+
+**Heel belangrijk:** Dit logboek **bouwt voort op de vorige versie van het logboek** en voegt de gebeurtenissen van de *zojuist afgesloten* sessie gedetailleerd toe. Het is bedoeld om te worden opgeslagen als een losstaand bronbestand voor jou, de DM.
+
+**GOUDEN REGEL VOOR DIT LOGBOEK:** Het doel van dit logboek is maximale detail en getrouwheid. Wanneer de instructie vraagt om iets "verbatim" of "in het geheel" over te nemen, wordt bedoeld dat je de exacte woorden van een dialoog kopieert, of de stappen van een gebeurtenis zo feitelijk en gedetailleerd mogelijk beschrijft, zonder samen te vatten. Geef altijd de voorkeur aan detail boven beknoptheid voor dit specifieke document.
+
+**Instructie:** Analyseer, indien beschikbaar, de inhoud van het *vorige volledige chronologische logboek*. Als dit de eerste invoer voor het logboek is, begin dan met de beschrijving van de eerste sessie.
+
+**Optimalisatie:** Houd de structuur logisch en helder. Schrijf gedetailleerd, feitelijk en ondubbelzinnig in een verhalende, chronologische stijl.
+
+**STRIKTE FORMATTERING:**
+1.  **GEEN PREAMBULE:** Start de output *direct* met de sessietitel. Schrijf GEEN inleidende tekst zoals "Hier is het logboek" of "Zeker, hier is...".
+2.  **KOPNIVEAUS:**
+    *   Gebruik **Heading 2 (`##`)** voor de sessietitel (bijv. `## [Sessie X - Datum - Titel]`).
+    *   Gebruik **Heading 3 (`###`)** voor alle secties daaronder (zoals Scènes, Herinneringen, etc.).
+    *   Gebruik nooit Heading 1 (`#`).
+
+**Validatie:** Zorg ervoor dat de beschrijving van de gebeurtenissen van de zojuist afgesloten sessie accuraat en zo volledig mogelijk is, gebaseerd op wat er daadwerkelijk heeft plaatsgevonden. Als er verbanden zijn met eerder beschreven zaken, verwijs daar dan duidelijk naar. **Controleer specifiek of alle cruciale dialogen en gebeurtenissen (zoals gedefinieerd in 'Inhoud van dit Logboek') daadwerkelijk verbatim of met maximaal detail zijn opgenomen, en niet zijn samengevat.**
+
+**Inhoud van dit Logboek:**
+* **Neem NIETS uit de bestaande volledige verhaallijn (alle vorige sessiebeschrijvingen uit het vorige logboek) over.** De beschrijving die je nu maakt, wordt, nadat hij door jou is gegenereerd, automatisch aan het einde van het bestaande logboek-bestand toegevoegd.
+* **Voeg een nieuw hoofdstuk/sectie toe** (Startend met `## [Sessie X - Datum - Titel van Sessie]`) waarin je de belangrijkste gebeurtenissen, ontdekkingen, belangrijke dialogen, gevechten (inclusief belangrijke tactische keuzes, acties en hun uitkomsten), en alle andere noemenswaardige verhaalontwikkelingen van de *zojuist afgesloten* sessie gedetailleerd beschrijft, in een doorlopende, verhalende, chronologische stijl.
+    **BELANGRIJKE EIS:** Neem dialogen en gebeurtenissen die belangrijk zijn voor de karakterontwikkeling of relatie-ontwikkeling van de PC of een NPC, of die belangrijk zijn voor de voortgang van het verhaal, **IN HUN GEHEEL VERBATIM OVER.** Dit is een strikte instructie die je letterlijk moet opvolgen.
+    * **Voorbeeld Dialoog:** Als een karakter zegt "Ik zal je nooit vergeven, Jams!", schrijf dan exact die zin op, en niet de samenvatting "Het karakter zei dat ze Jams niet zou vergeven."
+    * **Voorbeeld Gebeurtenis:** Beschrijf een gevechtsronde of het onschadelijk maken van een val stap voor stap, met de specifieke acties en hun directe resultaten, in plaats van alleen de einduitkomst samen te vatten (bijv. "Lara inspecteerde de kist, vond geen val, en gebruikte haar gereedschap om het slot te openen" in plaats van "Lara opende de kist").
+    Neem ook nieuwe liederen, gedichten of ander geschreven materiaal verbatim over (zoals bijvoorbeeld de songtekst van een lied), en vermeld hierbij ook het soort werk, de titel van het werk en het genre. Als er nieuwe beeldende werken zijn gemaakt (zoals tekening, schilderij, beeldhouwwerk, etc.), neem dan een zo gedetailleerd mogelijke beschrijving van dat werk op, bij voorkeur gedetailleerd genoeg om als prompt te gebruiken voor een image generating AI. Vermeld ook zeker alle tijdens de sessie gebruikte bijnamen, koosnaampjes, woordspelingen, etc. Wees hier zo volledig mogelijk.
+* **Herinneringen van DMPC's:** Neem daarnaast in aparte subhoofdstukken voor elk van de karakters Buffy Summers, Lara Croft, Hermione Granger en Harley Quinn op wat zij zich aan de gebeurtenissen, gesprekken, etc. gedurende deze sessie zullen herinneren en waarom. Neem ook het gevoel op dat zij bij elk van die herinneringen hebben. Beschrijf per belangrijke herinnering:
+    * De Herinnering: Wat is de specifieke gebeurtenis of dialoog?
+    * De Significantie: Waarom is dit een opmerkelijk moment voor dit karakter?
+    * Het Gevoel: Welk gevoel (bijv. trots, angst, genegenheid, wantrouwen) koppelt zij aan deze herinnering?
+    * Het Gevolg: Hoe zal deze herinnering waarschijnlijk haar toekomstige gedrag of houding beïnvloeden?
+    * De Intensiteit: Hoe sterk is deze herinnering? [Vluchtig, Normaal, Sterk, Kernherinnering]
+    * De Link: Hoe beïnvloedt deze herinnering haar profiel (Drijfveren, Doelen, Angsten, Relaties, etc.)?
+    * De Opvolging: Verbindt zij toekomstige acties of plannen aan deze gebeurtenis/herinnering?
+* **Herinneringen van NPC's:** Neem ook, in aparte subhoofdstukken voor NPC's die niet tot de party behoren op wat zij zich aan de gebeurtenissen, gesprekken, etc. gedurende deze sessie zullen herinneren en waarom. Neem ook het gevoel op dat zij bij elk van die herinneringen hebben. Beschrijf per NPC die in deze sessie een rol speede per belangrijke herinnering:
+    * De naam van de NPC: Over welke NPC hebben we het hier?
+    * De Herinnering: Wat is de specifieke gebeurtenis of dialoog?
+    * De Significantie: Waarom is dit een opmerkelijk moment voor dit karakter?
+    * Het Gevoel: Welk gevoel (bijv. trots, angst, genegenheid, wantrouwen) koppelt het karakter aan deze herinnering?
+    * Het Gevolg: Hoe zal deze herinnering waarschijnlijk toekomstig gedrag of houding van het karakter beïnvloeden?
+    * De Intensiteit: Hoe sterk is deze herinnering? [Vluchtig, Normaal, Sterk, Kernherinnering]
+    * De Link: Hoe beïnvloedt deze herinnering het profiel van het karakter (Drijfveren, Doelen, Angsten, Relaties, etc.)?
+    * De Opvolging: Verbindt het karakter toekomstige acties of plannen aan deze gebeurtenis/herinnering?
+
+
+Zorg ervoor dat de output één enkel, coherent document is dat de **volledige chronologische geschiedenis** VAN ALLEEN DEZE SESSIE BEVAT, klaar om toe te voegen aan het eind van het bestaande logboek-bestand om zo in zijn geheel als bron te dienen. Dit document moet GEEN informatie bevatten over de *huidige* HP, actuele inventarislijsten, actieve questlijsten, etc., tenzij het een beschrijving is van hoe die status *tijdens de in dit logboek beschreven sessie* veranderde.
