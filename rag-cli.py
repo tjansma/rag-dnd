@@ -11,6 +11,10 @@ import sys
 from rag_client import RAGClient, list_sessions, get_session_transcript, session_to_markdown
 from client_config import ClientConfig
 
+if os.name == 'nt':
+    sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore
+    sys.stdout.reconfigure(encoding='utf-8')    # pyrefly: ignore
+
 app = typer.Typer(help="D&D RAG CLI Management Tool",
                   rich_help_panel="D&D RAG CLI Management Tool",
                   no_args_is_help=True)
@@ -150,7 +154,7 @@ def session_show(id: int):
         
         table = Table(title=f"Session {id} Transcript")
         table.padding = 1
-        table.add_column("Player", style="cyan", no_wrap=True)
+        table.add_column("Player", style="cyan")
         table.add_column("DM", style="magenta")
         
         for turn in transcript:
@@ -218,6 +222,24 @@ def llm_chat(prompt: str):
     try:
         response = client.chat(prompt)
         console.print(response)
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@llm_app.command("expand_query")
+def llm_expand_query(session_guid: str, query: str):
+    """
+    Expand the query into a more specific search query.
+    
+    Args:
+        session_guid (str): The GUID of the session.
+        query (str): The query to expand.
+    
+    Returns:
+        str | None: The expanded query, or None if not found.
+    """
+    try:
+        expanded_query = client.expand_query(session_guid, query)
+        console.print(expanded_query)
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 

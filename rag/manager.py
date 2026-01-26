@@ -4,6 +4,7 @@ Manager for coordinating the storage of documents, chunks, and sentences.
 import os
 from hashlib import sha256
 import logging
+from typing import Optional, Literal
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -214,3 +215,35 @@ def prompt_llm(prompt: list[dict], config: Config=Config()) -> str:
     llm = get_llm(config.query_expansion_model, config.query_expansion_device)
     text = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
     return llm.generate(text)
+
+def expand_query(query_to_expand: str,
+                 extra_context: str,
+                 config: Optional[Config]=None) -> str:
+    """
+    Expand a query using the LLM.
+    
+    Args:
+        query_to_expand (str): The query to expand.
+        extra_context (str): The extra context to use.
+        config (Config): The configuration to use.
+        
+    Returns:
+        str: The expanded query.
+    """
+    if config is None:
+        config = Config()
+    system_prompt = open(config.query_expansion_system_prompt).read()
+    user_prompt = f"""<context>
+    {extra_context}
+    </context>
+
+    <query>
+    {query_to_expand}
+    </query>"""
+
+    logger.debug(f"Expanding query: {query_to_expand}")
+    prompt = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    return prompt_llm(prompt, config)

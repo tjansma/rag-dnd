@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 import rag
 
 from .schemas import StoreRequest, QueryRequest, UpdateRequest, \
-    DeleteRequest, QueryResponse, LLMMessage
+    DeleteRequest, QueryResponse, LLMMessage, ExpandQueryRequest
 
 router = APIRouter()
 
@@ -52,3 +52,7 @@ async def query_rag(request: QueryRequest) -> list[QueryResponse]:
 async def generate_llm(request: list[LLMMessage]) -> str:
     messages = [ { "role": message.role, "content": message.content } for message in request ]
     return rag.prompt_llm(messages)
+
+@router.post("/expand_query")
+async def expand_query(request: ExpandQueryRequest) -> str:
+    return rag.expand_query(request.query, request.extra_context)

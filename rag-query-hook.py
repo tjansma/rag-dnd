@@ -4,6 +4,10 @@ import json
 import os
 import datetime
 
+if os.name == 'nt':
+    sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore
+    sys.stdout.reconfigure(encoding='utf-8')    # pyrefly: ignore
+
 DEBUG = False
 
 # DEBUG LOGGING - use a very simple path
@@ -51,9 +55,21 @@ def main():
         config = ClientConfig()
         client = RAGClient(config)
         
+        # Expand query if enabled
+        search_query = prompt
+        if config.query_expansion and input_data.get("session_id"):
+            log_debug("Expanding query...")
+            session_guid = input_data.get("session_id")
+            
+            expanded_query = client.expand_query(session_guid, prompt)
+            if expanded_query:
+                search_query = expanded_query
+            else:
+                log_debug("Query expansion failed")
+        
         # Query the RAG system
         log_debug("Querying RAG system...")
-        results = client.query(prompt, limit=5)
+        results = client.query(search_query, limit=5)
         log_debug(f"Results found: {len(results)}")
         
         if not results:
@@ -69,7 +85,6 @@ def main():
         response = {
             "decision": "allow",
             "hookSpecificOutput": {
-                "hookEventName": "BeforeAgent",
                 "additionalContext": context_text
             }
         }

@@ -53,7 +53,7 @@ def init_db(db_path):
         return None
 
 
-def get_or_create_session(cursor: sqlite3.Cursor, session_guid: str) -> int:
+def get_or_create_session(session_guid: str, cursor: sqlite3.Cursor | None=None) -> int:
     """
     Resolve session GUID to integer ID.
     
@@ -64,6 +64,13 @@ def get_or_create_session(cursor: sqlite3.Cursor, session_guid: str) -> int:
     Returns:
         int: The session ID.
     """
+    if cursor is None:
+        conn = init_db(ClientConfig().transcript_database)
+        if conn is None:
+            logging.error("Failed to initialize DB")
+            raise Exception("Failed to initialize DB")
+        cursor = conn.cursor()
+    
     cursor.execute("SELECT id FROM sessions WHERE guid = ?", (session_guid,))
     row = cursor.fetchone()
     
@@ -123,7 +130,7 @@ def transcribe_turn(session_guid: str, user_prompt: str, ai_response: str) -> No
                 cursor = conn.cursor()
                 
                 # Get integer ID for session
-                session_id = get_or_create_session(cursor, session_guid)
+                session_id = get_or_create_session(session_guid, cursor)
                 
                 # Insert Turn (Single row per Q&A pair)
                 cursor.execute(
@@ -287,3 +294,31 @@ def transcript_summarize(id: int,
             logging.error(f"Logbook not found at {logbook_path}")
 
     return output_text
+
+def get_last_turn(session_id: int) -> dict[str, str] | None:
+    """
+    Get the last turn of a session.
+    
+    Args:
+        session_id (int): The ID of the session.
+    
+    Returns:
+        dict[str, str] | None: The last turn of the session, or None if not found.
+    """
+    try:
+        conn = init_db(ClientConfig().transcript_database)
+        
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, timestamp, user_prompt, ai_response FROM turns WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1", (session_id,))
+                row = cursor.fetchone()
+                return {"id": row[0], "timestamp": row[1], "user_prompt": row[2], "ai_response": row[3]} if row else None
+            except Exception as e:
+                logging.error(f"DB Read Error: {e}")
+                return None
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Failed to get last turn: {e}")
+        return None

@@ -43,6 +43,8 @@ class Config:
             os.getenv("RAG_DND_QUERY_EXPANSION_PROVIDER") or ""
         self.query_expansion_device: str = \
             os.getenv("RAG_DND_QUERY_EXPANSION_DEVICE") or "cpu"
+        self.query_expansion_system_prompt: str = \
+            os.getenv("RAG_DND_QUERY_EXPANSION_SYSTEM_PROMPT") or ""
 
         self.api_auto_reload = False
         api_auto_reload = os.getenv("RAG_DND_API_AUTO_RELOAD")

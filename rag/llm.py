@@ -91,3 +91,21 @@ def get_llm(model_name: str, device: str = "auto") -> HuggingFaceLLM:
         llm = HuggingFaceLLM(model_name, device)
         llm_instances[model_name] = llm
         return llm
+
+def unload_llm(model_name: str) -> None:
+    """
+    Unload a HuggingFaceLLM instance for the given model name.
+    
+    Args:
+        model_name (str): The name of the model to unload.
+        
+    Returns:
+        None
+    """
+    global llm_instances
+    logger.debug(f"Unloading HuggingFaceLLM instance for model: {model_name}")
+    if model_name in llm_instances:
+        logger.debug(f"Unloading HuggingFaceLLM instance for model: {model_name}")
+        del llm_instances[model_name]
+    else:
+        logger.debug(f"No HuggingFaceLLM instance found for model: {model_name}")

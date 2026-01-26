@@ -10,3 +10,4 @@ class ClientConfig:
     transcript_database: str = "data/transcript.db"
     logbook_path: str = "data/LMoP_ToD_TimJansma_Log.md"
     summary_prompt_file: str = "prompts/session_summary.txt"
+    query_expansion: bool = True

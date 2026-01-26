@@ -1,11 +1,14 @@
 """
 Common client for interacting with the RAG server.
 """
+from rag_client.transcript import get_or_create_session
 import requests
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from client_config import ClientConfig
+
+from .transcript import get_last_turn
 
 @dataclass
 class QueryResult:
@@ -108,6 +111,30 @@ class RAGClient:
         """
         url = f"{self.base_url}/llm_generate"
         payload = [{"role": "user", "content": query_text}]
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        
+        return response.json()
+
+    def expand_query(self, session_guid: str, query: str) -> str | None:
+        """
+        Expand the query into a more specific search query.
+        
+        Args:
+            session_id (int): The ID of the session.
+            query (str): The query to expand.
+        
+        Returns:
+            str | None: The expanded query, or None if not found.
+        """
+        url = f"{self.base_url}/expand_query"
+        session_id = get_or_create_session(session_guid)
+        last_turn = get_last_turn(session_id)
+        if last_turn is None:
+            return None
+
+        extra_context = last_turn["ai_response"]
+        payload = {"query": query, "extra_context": extra_context}
         response = requests.post(url, json=payload)
         response.raise_for_status()
         

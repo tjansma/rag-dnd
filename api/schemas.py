@@ -23,3 +23,7 @@ class QueryResponse(BaseModel):
 class LLMMessage(BaseModel):
     role: str
     content: str
+
+class ExpandQueryRequest(BaseModel):
+    query: str
+    extra_context: str
