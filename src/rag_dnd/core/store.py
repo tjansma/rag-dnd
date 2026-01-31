@@ -4,7 +4,7 @@ from typing import Any, Mapping, cast
 
 import chromadb
 
-from config import Config
+from ..config import Config
 from .models import Chunk
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from config import Config
+from .config import Config
 
 def setup_logging(config: Config) -> None:
     """

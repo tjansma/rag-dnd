@@ -1,9 +1,7 @@
 """Module-wide services."""
 import logging
 
-from sqlalchemy.orm import Session
-
-from .models import Document, Collection
+from .models import Document
 
 
 logger = logging.getLogger(__name__)

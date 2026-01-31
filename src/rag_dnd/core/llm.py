@@ -3,8 +3,6 @@ import logging
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from config import Config
-
 SUPPORTED_MODELS = [ "Qwen/Qwen3-4B-Instruct-2507-FP8" ]
 SUPPORTED_DEVICES = [ "cpu", "cuda", "auto" ]
 

@@ -7,7 +7,7 @@ from typing import Any
 from langchain_huggingface import HuggingFaceEmbeddings
 import torch
 
-from config import Config
+from ..config import Config
 
 from .models import Chunk
 

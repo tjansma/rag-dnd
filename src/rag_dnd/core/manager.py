@@ -1,16 +1,15 @@
 """
 Manager for coordinating the storage of documents, chunks, and sentences.
 """
-from sqlalchemy.exc import DatabaseError
-from sqlalchemy.orm.exc import UnmappedInstanceError
 import os
 from hashlib import sha256
 import logging
 from typing import Optional
 
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session, joinedload
 
-from config import Config
+from ..config import Config
 
 from .database import get_session, init_db
 from .embeddings import get_embedding_instance
