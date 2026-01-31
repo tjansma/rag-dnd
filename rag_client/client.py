@@ -41,6 +41,34 @@ class RAGClient:
         payload = {"file_path": file_path}
         response = requests.post(url, json=payload)
         response.raise_for_status()
+
+    def store_document_v2(self, file_path: str, collection: str | None = None) -> int:
+        """
+        Store a document in the RAG system.
+        
+        Args:
+            file_path: The absolute path to the document to store.
+            
+        Returns:
+            int: The status code of the response.
+            
+        Raises:
+            requests.HTTPError: If the request fails.
+        """
+        url = f"{self.base_url}/v2/document"
+        params = {"collection": collection} if collection else {}
+
+        with open(file_path, "rb") as file_handle:
+            file_stream = {"file": file_handle}
+            response = requests.post(url, files=file_stream, params=params)
+
+        if response.status_code == 409:
+            with open(file_path, "rb") as file_handle:
+                file_stream = {"file": file_handle}
+                response = requests.put(url, files=file_stream, params=params)
+        response.raise_for_status()
+
+        return response.status_code
         
     def update_document(self, file_path: str) -> None:
         """

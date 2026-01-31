@@ -78,6 +78,31 @@ def add(file_path: str):
         console.print(f"[bold red]Error:[/bold red] {e}")
 
 @rag_app.command()
+def upload(file_path: str, collection: str | None = None):
+    """
+    Upload a document to the index.
+    
+    Args:
+        file_path (str): The path to the document to upload.
+        collection (str | None): The collection to upload the document to.
+    
+    Returns:
+        None
+    """
+    try:
+        abs_path = os.path.abspath(file_path)
+        console.print(f"Uploading document: [green]{abs_path}[/green]")
+        status_code = client.store_document_v2(abs_path, collection)
+        if status_code == 201:
+            console.print("[bold green]Success![/bold green] New document added.")
+        elif status_code == 200:
+            console.print("[bold yellow]Success![/bold yellow] Existing document updated.")
+        else:
+            console.print(f"[bold red]Error:[/bold red] Unexpected status code: {status_code}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@rag_app.command()
 def update(file_path: str):
     """
     Update an existing document.

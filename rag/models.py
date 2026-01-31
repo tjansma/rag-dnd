@@ -23,9 +23,14 @@ class Collection(ORMBase):
 class Document(ORMBase):
     """Class to represent a document."""
     __tablename__ = "documents"
+    __table_args__ = (
+        sa.UniqueConstraint("collection_id", "file_hash", name="uq_collection_file_hash"),
+        sa.UniqueConstraint("collection_id", "custom_filename", name="uq_collection_custom_filename"),
+    )
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
     file_name: orm.Mapped[str] = orm.mapped_column(sa.String)
-    file_hash: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
+    file_hash: orm.Mapped[str] = orm.mapped_column(sa.String, index=True)
+    custom_filename: orm.Mapped[str] = orm.mapped_column(sa.String, index=True)
     collection_id: orm.Mapped[int] = orm.mapped_column(sa.Integer, sa.ForeignKey("collections.id"))
     
     collection: orm.Mapped["Collection"] = orm.relationship(

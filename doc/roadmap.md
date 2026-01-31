@@ -11,6 +11,10 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Use LLM to summarize gameplay into narrative logbook entries.
   - Automatically index these entries into the RAG database.
 
+- [ ] **Agent Modularization (Pub/Sub)**
+  - Implement a Publisher/Subscriber architecture to decouple agent loop from RAG hooks.
+  - Allow multiple independent agents/services to subscribe to game events.
+
 ## 2. Content Ingestion (PDF & Rules)
 
 - [ ] **Advanced PDF Processing**
@@ -42,3 +46,5 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Advanced management commands (re-index specific collections, prune partial data).
 - [ ] **Full MCP & Hook Ecosystem**
   - Expose Character DB and Rule lookups solely via MCP/Hooks to the AI.
+- [ ] **Multipart File Uploads**
+  - Refactor API to support `multipart/form-data` for robust file handling.

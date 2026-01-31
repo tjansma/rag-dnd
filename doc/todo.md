@@ -5,6 +5,11 @@
 - [ ] **Refactor Project Structure**
   - [ ] Create `hooks/` package and move `rag-hook.py` to `hooks/context.py`.
   - [ ] Update `pyproject.toml` with `[project.scripts]` entry points.
+- [x] **Implement Summarization Pipeline** (Client-side via Gemini CLI)
+  - [x] **Transcript Extraction**: Retrieve full session history from SQLite.
+  - [x] **Summarization**: Use Gemini CLI to generate high-level summaries of sessions.
+  - [x] **Ingestion**: Store summaries in logbook (append).
+  - [x] **CLI**: Add `llm summarize <session_id>` command.
 - [ ] **Implement Auto-Transcription Hook (`rag-logger`)**
   - [ ] **Research**: Create dummy logger to inspect `AfterAgent` JSON payload.
   - [ ] **Develop `hooks/logger.py`**:
@@ -46,3 +51,6 @@
 ## Pending Tasks (Backlog)
 
 - [x] **MCP Server**: Implement `search_logs` tool calling the API.
+- [ ] **Agent Modularization**: Research Pub/Sub architecture, for adding multiple agents that can independently subscribe to game events and add context to the user's query.
+- [x] **Multipart Upload**: Refactor file upload API (`/v2/document`).
+- [ ] **Multipart Update**: Implement `PUT /v2/document` for updating existing files.

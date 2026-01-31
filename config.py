@@ -1,5 +1,6 @@
 """Configuration for the application."""
 import os
+from pathlib import Path
 
 import dotenv
 
@@ -32,6 +33,10 @@ class Config:
             f'{os.getenv("RAG_DND_COLLECTION_PREFIX") or "rag_dnd"}_{model_name_slug}'
         self.log_level: str = os.getenv("RAG_DND_LOG_LEVEL") or "WARNING"
         self.log_file: str = os.getenv("RAG_DND_LOG_FILE") or "log/app.log"
+
+        # Storage settings
+        self.upload_dir: Path = Path(
+            os.getenv("RAG_DND_UPLOAD_DIR") or "uploads").resolve(strict=False)
 
         # Query expansion settings
         self.query_expansion_enabled: bool = \
