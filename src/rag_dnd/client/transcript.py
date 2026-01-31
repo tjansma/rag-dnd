@@ -5,7 +5,7 @@ import sqlite3
 from typing import Optional
 import subprocess
 
-from client_config import ClientConfig
+from .config import ClientConfig
 
 
 def init_db(db_path):

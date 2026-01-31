@@ -1,14 +1,13 @@
 """
 Common client for interacting with the RAG server.
 """
-from rag_client.transcript import get_or_create_session
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List
 from dataclasses import dataclass
 
-from client_config import ClientConfig
+from .config import ClientConfig
+from .transcript import get_or_create_session, get_last_turn
 
-from .transcript import get_last_turn
 
 @dataclass
 class QueryResult:
