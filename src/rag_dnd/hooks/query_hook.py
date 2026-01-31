@@ -27,8 +27,7 @@ log_debug("--- Hook Script Started (Windows Safe) ---")
 # Ensure we can import from the current directory
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from client_config import ClientConfig
-from rag_client import RAGClient
+from ..client import RAGClient, ClientConfig
 
 def main():
     try:

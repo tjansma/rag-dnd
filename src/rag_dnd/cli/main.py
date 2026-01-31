@@ -1,5 +1,4 @@
 """CLI tool for interacting with the RAG server."""
-from rag_client import transcript_summarize
 from pathlib import Path
 import typer
 from rich.console import Console
@@ -8,8 +7,8 @@ import os
 from typing import Optional
 import sys
 
-from rag_client import RAGClient, list_sessions, get_session_transcript, session_to_markdown
-from client_config import ClientConfig
+from ..client import RAGClient, list_sessions, get_session_transcript, \
+    session_to_markdown, ClientConfig, transcript_summarize
 
 if os.name == 'nt':
     sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore

@@ -3,8 +3,7 @@ import sys
 import json
 import logging
 
-from client_config import ClientConfig
-from rag_client import transcribe_turn
+from ..client import transcribe_turn
 
 if os.name == 'nt':
     sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore

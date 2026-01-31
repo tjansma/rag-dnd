@@ -46,5 +46,5 @@ packages = ["src/rag_dnd"]
 rag-cli = "rag_dnd.cli.main:app"
 rag-server = "rag_dnd.server.main:start"
 rag-mcp = "rag_dnd.mcp.server:main"
-rag-hook-context = "rag_dnd.hooks.context:main"
-rag-hook-logger = "rag_dnd.hooks.logger:main"
+rag-hook-context = "rag_dnd.hooks.query_hook:main"
+rag-hook-logger = "rag_dnd.hooks.log_hook:main"

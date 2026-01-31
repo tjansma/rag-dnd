@@ -1,8 +1,7 @@
 """Common MCP server for interacting with the RAG server."""
 from fastmcp import FastMCP
 
-from client_config import ClientConfig
-from rag_client import RAGClient
+from ..client import RAGClient, ClientConfig
 
 rag_client = RAGClient(ClientConfig())
 
@@ -29,5 +28,8 @@ def search(query: str) -> str:
     
     return answer
 
-if __name__ == "__main__":
+def main():
     mcp.run()
+
+if __name__ == "__main__":
+    main()
