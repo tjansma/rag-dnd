@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
-import rag
+from .. import core as rag
 
 from .schemas import StoreRequest, QueryRequest, UpdateRequest, \
     DeleteRequest, QueryResponse, LLMMessage, ExpandQueryRequest
