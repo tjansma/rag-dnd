@@ -10,10 +10,13 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Workflow to read raw session transcripts.
   - Use LLM to summarize gameplay into narrative logbook entries.
   - Automatically index these entries into the RAG database.
-
-- [ ] **Agent Modularization (Pub/Sub)**
   - Implement a Publisher/Subscriber architecture to decouple agent loop from RAG hooks.
   - Allow multiple independent agents/services to subscribe to game events.
+
+- [ ] **Multi-Query Decomposition (v1.x)**
+  - Upgrade Query Expansion to generate _multiple_ specific sub-queries from one user prompt.
+  - Perform parallel vector searches for each sub-query.
+  - De-duplicate and re-rank results to cover multiple semantic aspects (e.g., "visuals" vs "dialogue").
 
 ## 2. Content Ingestion (PDF & Rules)
 
@@ -48,3 +51,9 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Expose Character DB and Rule lookups solely via MCP/Hooks to the AI.
 - [ ] **Multipart File Uploads**
   - Refactor API to support `multipart/form-data` for robust file handling.
+
+## 5. Search Intelligence
+
+- [ ] **Hybrid Search (BM25 + Semantic)**
+  - Implement **SQLite FTS5** Virtual Tables for full-text (keyword) search.
+  - Implement **Reciprocal Rank Fusion (RRF)** to combine Jina-v3 vectors with BM25 scores.

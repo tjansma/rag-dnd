@@ -65,13 +65,21 @@
     ```
   - [x] Use `pyproject.toml` entry points for `rag-server`, `rag-cli`, `rag-hook`.
 
-### 2. Feature: Hybrid Search (BM25 + Semantic)
+### 2. Feature: Multi-Query Decomposition (v1.x)
+
+- **Goal**: Expand user queries into multiple sub-queries for broader semantic coverage.
+- **Tasks**:
+  - [ ] Implement HyDE or Decomposition prompt.
+  - [ ] Parallelize vector searches.
+  - [ ] Rerank/Deduplicate results.
+
+### 3. Feature: Hybrid Search (BM25 + Semantic)
 
 - **Goal**: Improve retrieval of specific terms (names, locations) that semantic search misses.
 - **Strategy**:
-  - Enable FTS5 full-text search in SQLite on the chunks table.
-  - Implement Reciprocal Rank Fusion (RRF) to combine Vector + Keyword scores.
-  - Update `rag.query` to use this hybrid retriever.
+  - [ ] **SQLite FTS5**: Implement `CREATE VIRTUAL TABLE chunks_fts USING fts5(text, content='chunks', content_rowid='id')`.
+  - [ ] **Sync**: Ensure FTS index stays in sync (Triggers or App-side).
+  - [ ] **Search**: Implement Reciprocal Rank Fusion (RRF) to combine Vector + Keyword scores.
 
 ### 3. Tooling: Re-indexing & Maintenance
 
