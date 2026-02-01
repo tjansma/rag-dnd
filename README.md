@@ -4,23 +4,25 @@ A **Retrieval-Augmented Generation (RAG)** system built to provide context-aware
 
 ## Architecture & Technology
 
-*   **Language:** Python (>=3.12)
-*   **Package Manager:** `uv`
-*   **Backend:** FastAPI Server (`api/`)
-*   **Embeddings:** `jinaai/jina-embeddings-v3` (SOTA, GPU Accelerated).
-*   **Storage:**
-    *   **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
-    *   **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
+- **Language:** Python (>=3.12)
+- **Package Manager:** `uv`
 
-### Client/Server Architecture
-
-To support multiple simultaneous interfaces (Gemini CLI Hook, MCP Server, Admin CLI) without file locking issues on the local SQLite/Chroma databases, the system uses a central API:
-
-1.  **Backend (FastAPI):** Single "Gatekeeper" process managing all DB connections.
-2.  **Clients:**
-    *   **Admin CLI:** For adding/updating log files.
-    *   **Gemini Hook:** For injecting context into CLI chats.
-    *   **MCP Server:** For exposing tools to AI assistants (Claude, Cursor, etc.).
+8.  - **Backend:** FastAPI Server (`src/rag_dnd/server/`)
+9.  - **Core:** Shared Logic (`src/rag_dnd/core/`)
+10. - **Embeddings:** `jinaai/jina-embeddings-v3` (SOTA, GPU Accelerated).
+11. - **Storage:**
+12.     *   **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
+13.     *   **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
+14.
+15. ### Client/Server Architecture
+16.
+17. To support multiple simultaneous interfaces (Gemini CLI Hook, MCP Server, Admin CLI) without file locking issues on the local SQLite/Chroma databases, the system uses a central API:
+18.
+19. 1. **Backend (FastAPI):** Single "Gatekeeper" process managing all DB connections.
+20. 2. **Clients:**
+21.     *   **Admin CLI (`rag-cli`):** For adding/updating log files.
+22.     *   **Gemini Hook:** For injecting context into CLI chats.
+23.     *   **MCP Server (`rag-mcp`):** For exposing tools to AI assistants (Claude, Cursor, etc.).
 
 ## 🚀 Features
 
@@ -48,24 +50,26 @@ Ensure you have NVIDIA Drivers installed supporting CUDA 12.6+.
 ## 📖 Usage
 
 ### 1. Start the Server
+
 The central API must be running for any clients to work.
 
 ```bash
-uv run -m api
+uv run rag-server
 ```
-The server will start on `http://localhost:8000`.
+
+The server will start on `http://localhost:8001`.
 
 ### 2. Indexing Data
-You can index documents via the API (CLI tool coming soon).
+
+You can index documents via the CLI tool.
 
 ```bash
-# Example using curl
-curl -X POST "http://localhost:8000/document" \
-     -H "Content-Type: application/json" \
-     -d '{"file_path": "C:/path/to/session_log.md"}'
+# Add a document
+uv run rag-cli rag add data/session_log.md
 ```
 
 ### 3. Querying
+
 Perform a search against the knowledge base:
 
 ```bash

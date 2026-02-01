@@ -1,4 +1,6 @@
-# Migration Plan: src-layout Refactor
+# Migration Plan: src-layout Refactor (COMPLETED)
+
+**Status:** ✅ Completed on Feb 1, 2026.
 
 This document outlines the step-by-step plan to refactor the `rag-dnd` repository from a flat script collection to a structured `src` package layout.
 

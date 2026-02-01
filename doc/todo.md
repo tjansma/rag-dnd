@@ -2,9 +2,9 @@
 
 ## v0.2: Automation & Workflow (Current Focus)
 
-- [ ] **Refactor Project Structure**
-  - [ ] Create `hooks/` package and move `rag-hook.py` to `hooks/context.py`.
-  - [ ] Update `pyproject.toml` with `[project.scripts]` entry points.
+- [x] **Refactor Project Structure**
+  - [x] Create `hooks/` package and move `rag-hook.py` to `hooks/context.py` (and `query_hook.py`).
+  - [x] Update `pyproject.toml` with `[project.scripts]` entry points.
 - [x] **Implement Summarization Pipeline** (Client-side via Gemini CLI)
   - [x] **Transcript Extraction**: Retrieve full session history from SQLite.
   - [x] **Summarization**: Use Gemini CLI to generate high-level summaries of sessions.
@@ -50,20 +50,20 @@
 
 ## v1.0: Enterprise Readiness (Roadmap)
 
-### 1. Refactor: Project Structure
+### 1. Refactor: Project Structure (Completed)
 
 - **Goal**: Professionalize the repository by moving scripts into a proper Python package structure.
 - **Tasks**:
-  - Create `rag_dnd` or `rag` package root.
-  - Example structure:
+  - [x] Create `rag_dnd` or `rag` package root.
+  - [x] Example structure:
     ```text
-    rag/
+    src/rag_dnd/
       core/ (manager, models, database)
-      api/ (server, routes)
+      server/ (api, routes)
       cli/ (commands)
       hooks/ (logger, context)
     ```
-  - Use `pyproject.toml` entry points for `rag-server`, `rag-cli`, `rag-hook`.
+  - [x] Use `pyproject.toml` entry points for `rag-server`, `rag-cli`, `rag-hook`.
 
 ### 2. Feature: Hybrid Search (BM25 + Semantic)
 

@@ -27,16 +27,13 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
 ## Current Status (Jan 2026)
 
 - **Implemented:**
-  - **FastAPI Backend (`api/`):** Central server managing DB access.
-  - **Jina V3 Integration:** GPU-accelerated embeddings with `trust_remote_code=True`.
-  - **RAG Core (`rag/`):**
-    - Markdown Header-based Chunking (`rag/chunker.py`).
-    - Smart Sentence Splitting.
-    - Storage Manager (`rag/manager.py`) orchestrating SQLite + Chroma.
-  - **Clients:**
-    - **CLI:** `rag-cli.py` for document management.
-    - **Gemini Hook:** `rag-hook.py` for context injection.
-    - **MCP Server:** `rag-mcp-server.py` for IDE integration.
+- **Implemented:**
+  - **Shared Core (`src/rag_dnd/core`):** Database models, Embeddings, Logic.
+  - **FastAPI Server (`src/rag_dnd/server`):** Central entry point.
+  - **Client Library (`src/rag_dnd/client`):** Python client for API.
+  - **CLI Tools (`src/rag_dnd/cli`):** `rag-cli` command.
+  - **Hooks (`src/rag_dnd/hooks`):** Gemini integration scripts.
+  - **MCP Server (`src/rag_dnd/mcp`):** IDE integration.
 
 ## Setup & Usage
 
@@ -57,13 +54,17 @@ uv sync
 
 Start the API server (Must be running for Hooks/CLI to work):
 
+### 2. Running the Server
+
+Start the API server (Must be running for Hooks/CLI to work):
+
 ```bash
-uv run api
+uv run rag-server
 ```
 
 ### 3. Gemini CLI Hook Setup
 
-The project includes a hook to inject RAG context into Gemini CLI.
+The project includes hooks to inject RAG context into Gemini CLI.
 
 1.  **Enable Hooks Globally:**
     Ensure `C:\Users\<user>\.gemini\settings.json` has:
@@ -73,8 +74,7 @@ The project includes a hook to inject RAG context into Gemini CLI.
     ```
 
 2.  **Project Configuration:**
-    The project `.gemini/settings.json` is pre-configured to run `rag-hook.py`.
-    _Note: It uses a direct path to the `.venv` python executable to avoid timeouts._
+    The project `.gemini/settings.json` is configured to run `rag-hook-context` and `rag-hook-logger`.
 
 3.  **Usage:**
     Just ask a question in Gemini CLI. The hook will:
@@ -88,10 +88,10 @@ Manage documents via the command line:
 
 ```bash
 # Add a document
-uv run rag-cli.py add data/session_log.md
+uv run rag-cli rag add data/session_log.md
 
 # Search manually
-uv run rag-cli.py search "Wie is Nezznar?"
+uv run rag-cli rag search "Wie is Nezznar?"
 ```
 
 ### 5. MCP Server Setup
@@ -108,7 +108,7 @@ To use the RAG system in Cursor or Claude Desktop:
           "--directory",
           "C:\\Development\\src\\_AI\\rag_dnd",
           "run",
-          "rag-mcp-server.py"
+          "rag-mcp"
         ]
       }
     }
