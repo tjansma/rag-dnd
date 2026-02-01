@@ -57,7 +57,15 @@ class Config:
 
     @classmethod
     def load(cls, overrides: dict[str, Any] | None = None) -> Self:
-        """Load configuration from defaults, config file, and environment variables."""
+        """
+        Load configuration from defaults, config file, and environment variables.
+
+        Args:
+            overrides: Dictionary of overrides to apply to the configuration.
+
+        Returns:
+            Config: The configuration for the server application.
+        """
         # Start with defaults
         actual_config: dict[str, Any] = _DEFAULTS.copy()
         
