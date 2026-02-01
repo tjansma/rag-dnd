@@ -12,7 +12,7 @@
           {
             "name": "dnd-rag-context",
             "type": "command",
-            "command": "uv --directory C:\\Development\\src\\_AI\\rag_dnd run rag-query-hook.py",
+            "command": "uv --directory C:\\Development\\src\\_AI\\rag_dnd run rag-hook-context",
             "timeout": 30000
           }
         ]
@@ -24,7 +24,7 @@
           {
             "name": "dnd-rag-logger",
             "type": "command",
-            "command": "uv --directory C:\\Development\\src\\_AI\\rag_dnd run rag-log-hook.py",
+            "command": "uv --directory C:\\Development\\src\\_AI\\rag_dnd run rag-hook-logger",
             "timeout": 5000
           }
         ]
@@ -38,7 +38,7 @@
         "--directory",
         "C:\\Development\\src\\_AI\\rag_dnd",
         "run",
-        "rag-mcp-server.py"
+        "rag-mcp"
       ]
     }
   }
