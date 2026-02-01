@@ -65,7 +65,7 @@ def get_or_create_session(session_guid: str, cursor: sqlite3.Cursor | None=None)
         int: The session ID.
     """
     if cursor is None:
-        conn = init_db(ClientConfig().transcript_database)
+        conn = init_db(ClientConfig.load().transcript_database)
         if conn is None:
             logging.error("Failed to initialize DB")
             raise Exception("Failed to initialize DB")
@@ -123,7 +123,7 @@ def transcribe_turn(session_guid: str, user_prompt: str, ai_response: str) -> No
 
     # 4. Store in SQLite (Normalized)
     if prompt and response:
-        conn = init_db(ClientConfig().transcript_database)
+        conn = init_db(ClientConfig.load().transcript_database)
         
         if conn:
             try:
@@ -151,7 +151,7 @@ def list_sessions() -> list[dict[str, str]]:
         list[str]: A list of session GUIDs.
     """
     try:
-        conn = init_db(ClientConfig().transcript_database)
+        conn = init_db(ClientConfig.load().transcript_database)
         
         if conn:
             try:
@@ -181,7 +181,7 @@ def get_session_transcript(session_id: int) -> list[dict[str, str]]:
         list[dict[str, str]]: A list of turns in the session.
     """
     try:
-        conn = init_db(ClientConfig().transcript_database)
+        conn = init_db(ClientConfig.load().transcript_database)
         
         if conn:
             try:
@@ -210,7 +210,7 @@ def session_to_markdown(session_id: int) -> str:
     Returns:
         str: The session transcript in markdown format.
     """
-    db_conn = init_db(ClientConfig().transcript_database)
+    db_conn = init_db(ClientConfig.load().transcript_database)
     if db_conn is None:
         raise Exception("Failed to initialize database")
 
@@ -229,7 +229,7 @@ def session_to_markdown(session_id: int) -> str:
     return "\n\n".join(markdown_lines)
 
 def transcript_summarize(id: int, 
-                      prompt_file: str = ClientConfig.summary_prompt_file, 
+                      prompt_file: str = ClientConfig.load().summary_prompt_file, 
                       output: Optional[str] =  None, 
                       append: bool = False) -> str:
     """
@@ -285,7 +285,7 @@ def transcript_summarize(id: int,
         logging.info(f"Saved to {output}")
             
     if append:
-        logbook_path = Path(ClientConfig.logbook_path).resolve()
+        logbook_path = Path(ClientConfig.load().logbook_path).resolve()
         if logbook_path.exists():
             with open(logbook_path, "a", encoding="utf-8") as f:
                 f.write("\n\n" + output_text)
@@ -306,7 +306,7 @@ def get_last_turn(session_id: int) -> dict[str, str] | None:
         dict[str, str] | None: The last turn of the session, or None if not found.
     """
     try:
-        conn = init_db(ClientConfig().transcript_database)
+        conn = init_db(ClientConfig.load().transcript_database)
         
         if conn:
             try:

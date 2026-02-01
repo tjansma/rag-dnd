@@ -3,7 +3,7 @@ from fastmcp import FastMCP
 
 from ..client import RAGClient, ClientConfig
 
-rag_client = RAGClient(ClientConfig())
+rag_client = RAGClient(ClientConfig.load())
 
 mcp = FastMCP("D&D RAG MCP Server")
 

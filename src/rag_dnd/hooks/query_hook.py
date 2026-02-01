@@ -51,7 +51,7 @@ def main():
              return
 
         # Initialize client
-        config = ClientConfig()
+        config = ClientConfig.load()
         client = RAGClient(config)
         
         # Expand query if enabled

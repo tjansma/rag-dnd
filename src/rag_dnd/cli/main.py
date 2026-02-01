@@ -26,7 +26,7 @@ app.add_typer(rag_app, name="rag")
 app.add_typer(session_app, name="session")
 
 console = Console()
-client = RAGClient(ClientConfig())
+client = RAGClient(ClientConfig.load())
 
 @rag_app.command()
 def search(query: str, limit: int = 5):
@@ -211,7 +211,7 @@ def session_export(id: int, output_file: Optional[str]=None):
 
 @session_app.command("summarize")
 def session_summarize(id: int, 
-                      prompt_file: str = ClientConfig.summary_prompt_file, 
+                      prompt_file: str = ClientConfig.load().summary_prompt_file, 
                       output: Optional[str] =  None, 
                       append: bool = False):
     """
