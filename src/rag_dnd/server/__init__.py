@@ -6,7 +6,7 @@ from ..log import setup_logging
 from .routes import router
 from .routes_v2 import router_v2
 
-setup_logging(Config())
+setup_logging(Config.load())
 
 app = FastAPI()
 app.include_router(router)

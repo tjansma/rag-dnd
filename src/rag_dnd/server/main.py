@@ -9,7 +9,7 @@ if os.name == 'nt':
 from ..config import Config
 from ..log import setup_logging
 
-config = Config()
+config = Config.load()
 
 def start():
     """Entry point for rag-server"""

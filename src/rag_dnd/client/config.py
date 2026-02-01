@@ -1,27 +1,44 @@
-"""
-Configuration for the RAG clients.
-"""
+"""Configuration for the RAG clients."""
 from typing import Self
 from typing import Any
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 import os
 from platformdirs import user_config_dir
-import tomllib
 
+import tomllib
+import tomlkit
+
+_DEFAULTS = {
+    "base_url": "http://localhost:8001",
+    "transcript_database": "data/transcript.db",
+    "logbook_path": "data/LMoP_ToD_TimJansma_Log.md",
+    "summary_prompt_file": "prompts/session_summary.txt",
+    "query_expansion": True,
+}
 
 @dataclass
 class ClientConfig:
-    base_url: str = "http://localhost:8001"
-    transcript_database: str = "data/transcript.db"
-    logbook_path: str = "data/LMoP_ToD_TimJansma_Log.md"
-    summary_prompt_file: str = "prompts/session_summary.txt"
-    query_expansion: bool = True
+    """Configuration for the RAG clients."""
+    base_url: str
+    transcript_database: str
+    logbook_path: str
+    summary_prompt_file: str
+    query_expansion: bool
 
     @classmethod
     def load(cls, overrides: dict[str, Any] | None = None) -> Self:
+        """
+        Load configuration from defaults, config file, and environment
+        variables.
+
+        Args:
+            overrides: Dictionary of overrides to apply to the configuration.
+
+        Returns:
+            ClientConfig: The configuration for the RAG clients.
+        """
         # Start with defaults
-        defaults = {f.name: f.default for f in fields(cls)}
-        actual_config = defaults.copy()
+        actual_config: dict[str, Any] = _DEFAULTS.copy()
 
         # Load config file from user config directory
         # e.g. ~/.config/rag-dnd/config.toml on Linux or macOS
@@ -55,17 +72,10 @@ class ClientConfig:
         if not os.path.exists(config_file):
             os.makedirs(config_dir, exist_ok=True)
             with open(config_file, "w", encoding="utf-8") as f:
-                f.write("# RAG D&D Client Configuration\n")
-                f.write("# Base URL for the RAG server\n")
-                f.write(f"base_url = \"{actual_config['base_url']}\"\n")
-                f.write("# Path to the transcript database\n")
-                f.write(f"transcript_database = \"{actual_config['transcript_database']}\"\n")
-                f.write("# Path to the session log\n")
-                f.write(f"logbook_path = \"{actual_config['logbook_path']}\"\n")
-                f.write("# Path to the summary prompt file\n")
-                f.write(f"summary_prompt_file = \"{actual_config['summary_prompt_file']}\"\n")
-                f.write("# Enable query expansion\n")
-                f.write(f"query_expansion = {actual_config['query_expansion']}\n")
+                doc = tomlkit.document()
+                for key, value in actual_config.items():
+                    doc.add(key, value)
+                f.write(tomlkit.dumps(doc))
 
         # Check runtime override
         if overrides:

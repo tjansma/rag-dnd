@@ -21,6 +21,7 @@ dependencies = [
     "platformdirs>=4.5.1",
     "sentence-transformers>=5.2.0",
     "sqlalchemy>=2.0.45",
+    "tomlkit>=0.14.0",
     "torch>=2.5.0",
     "torchvision>=0.20.0",
     "triton-windows>=3.6.0.post24",

@@ -46,7 +46,7 @@ def ensure_collection(session: Session, collection_name: str) -> Collection:
     return collection
 
 
-def store_document(filename: str, custom_filename: str | None = None, config: Config=Config()) -> None:
+def store_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:
     """
     Store a document in the database.
     
@@ -126,7 +126,7 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
     session.close()
     logger.info(f"Stored document: {filename} with {len(chunks)} chunks.")
 
-def query(query: str, config: Config=Config()) -> list[QueryResult]:
+def query(query: str, config: Config=Config.load()) -> list[QueryResult]:
     """
     Query the vector store.
     
@@ -176,7 +176,7 @@ def query(query: str, config: Config=Config()) -> list[QueryResult]:
         )
     return results
 
-def delete_document(filename: str, custom_filename: str | None = None, config: Config=Config()) -> None:
+def delete_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:
     """
     Delete a document from the database.
     
@@ -221,7 +221,7 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
     logger.info(f"Deleted document: {custom_filename}")
 
 
-def update_document(filename: str, custom_filename: str | None = None, config: Config=Config()) -> None:
+def update_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:
     """
     Update a document in the database.
     
@@ -272,7 +272,7 @@ def update_document(filename: str, custom_filename: str | None = None, config: C
 
     logger.info(f"Updated document: {filename}")
 
-def prompt_llm(prompt: list[dict], config: Config=Config()) -> str:
+def prompt_llm(prompt: list[dict], config: Config=Config.load()) -> str:
     """
     Prompt the LLM.
     
@@ -306,7 +306,7 @@ def expand_query(query_to_expand: str,
         str: The expanded query.
     """
     if config is None:
-        config = Config()
+        config = Config.load()
     # Read the system prompt for the query expansion model
     system_prompt = open(config.query_expansion_system_prompt).read()
     # Create the user prompt and include the extra context and query to expand

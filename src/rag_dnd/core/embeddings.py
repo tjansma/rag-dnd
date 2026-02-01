@@ -20,7 +20,7 @@ class Embedding:
     Embeddings for markdown text.
     """
     def __init__(self, model_name: str | None = None,
-                 config: Config=Config()) -> None:
+                 config: Config=Config.load()) -> None:
         """
         Initialize the Embeddings with a specific strategy.
         
