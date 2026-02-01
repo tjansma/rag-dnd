@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from .config import Config
@@ -24,9 +25,12 @@ def setup_logging(config: Config) -> None:
     logger.addHandler(stdout_handler)
 
     # File output
-    file_handler = logging.FileHandler(config.log_file)
-    file_handler.setLevel(log_level)
-    file_format = logging.Formatter(
-        u"%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(file_format)
-    logger.addHandler(file_handler)
+    if config.log_file:
+        if not os.path.exists(os.path.dirname(config.log_file)):
+            os.makedirs(os.path.dirname(config.log_file))
+        file_handler = logging.FileHandler(config.log_file)
+        file_handler.setLevel(log_level)
+        file_format = logging.Formatter(
+            u"%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        file_handler.setFormatter(file_format)
+        logger.addHandler(file_handler)

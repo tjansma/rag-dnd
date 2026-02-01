@@ -44,7 +44,8 @@ class HuggingFaceLLM:
             dtype="auto",
             device_map=self.device)
         
-        logger.info(f"Initialized HuggingFaceLLM with model: {self.model_name} on device: {self.device}")
+        self.running_on_device = next(self.model.parameters()).device
+        logger.info(f"Initialized HuggingFaceLLM with model: {self.model_name} on device: {self.running_on_device}")
 
     def generate(self, prompt: str) -> str:
         """
