@@ -18,7 +18,19 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Perform parallel vector searches for each sub-query.
   - De-duplicate and re-rank results to cover multiple semantic aspects (e.g., "visuals" vs "dialogue").
 
-## 2. Content Ingestion (PDF & Rules)
+## 2. Multi-Campaign Architecture (In Progress)
+
+- [ ] **Data & Config Separation**
+  - Store campaign data in user profile (`~/.rag_dnd/campaigns/`).
+  - Separate application logic from content.
+  - Implement `campaign.yaml` metadata standard.
+- [ ] **Prompt Engine**
+  - Server-side rendering of System Prompts.
+  - Dynamic injection of Character Sheets and Lore into context window.
+- [ ] **Client API**
+  - Endpoints to switch campaigns and retrieve rendered contexts.
+
+## 3. Content Ingestion (PDF & Rules)
 
 - [ ] **Advanced PDF Processing**
   - Smart chunking for D&D rulebooks and campaign modules.
@@ -28,7 +40,7 @@ This document outlines the vision and future features for the `rag-dnd` project.
     - Images/Maps
   - Ingestion pipeline to add these reference materials to the RAG.
 
-## 3. Structured Data & Character Tracking
+## 4. Structured Data & Character Tracking
 
 - [ ] **Relational Character Database**
   - Move beyond text-only tracking for critical stats.
@@ -39,7 +51,7 @@ This document outlines the vision and future features for the `rag-dnd` project.
 - [ ] **State Tracking Hooks**
   - Mechanisms to update this DB based on narrative events (e.g., "I buy a potion" -> deduct gold, add item).
 
-## 4. Interfaces & Management
+## 5. Interfaces & Management
 
 - [ ] **Web Administration Interface**
   - GUI overview of the RAG content types and collections.
@@ -52,7 +64,7 @@ This document outlines the vision and future features for the `rag-dnd` project.
 - [ ] **Multipart File Uploads**
   - Refactor API to support `multipart/form-data` for robust file handling.
 
-## 5. Search Intelligence
+## 6. Search Intelligence
 
 - [x] **Hybrid Search (BM25 + Semantic)**
   - Implement **In-Memory BM25** using `rank_bm25` (Ensemble Retriever).

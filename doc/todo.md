@@ -18,6 +18,21 @@
     - [ ] Append to `data/session_transcript.txt` with timestamp.
   - [ ] **Configuration**: Update `settings.json` to trigger on `AfterAgent`.
 
+## v0.3: Multi-Campaign Architecture (Next Implementation)
+
+- [ ] **Design Status**
+  - [x] Analyze project and requirements.
+  - [x] Create design document: `doc/campaign_structure_design.md`.
+- [ ] **Core Refactor**
+  - [ ] **Data Separation**: Move user data to `~/.rag_dnd/campaigns/`.
+  - [ ] **Configuration**: Update `config.py` to support dynamic campaign loading.
+- [ ] **Server Logic**
+  - [ ] Implement `Campaign` class and `yaml` loader.
+  - [ ] Implement `PromptEngine` to render system prompts server-side (injecting character sheets).
+  - [ ] Add `GET /campaigns/{id}/context` API endpoint.
+- [ ] **Client Updates**
+  - [ ] Refactor hooks/CLI to fetch context via API (remove local Jinja2).
+
 ## v0.1: Core RAG & Clients (Completed)
 
 ### Core RAG Logic

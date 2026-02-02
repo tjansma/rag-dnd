@@ -2,35 +2,24 @@
 
 A **Retrieval-Augmented Generation (RAG)** system built to provide context-aware responses for Dungeons & Dragons campaigns. This project indexes long-running campaign logs and injects relevant session history into LLM prompts via the Gemini CLI or MCP-compatible editors.
 
-## Architecture & Technology
-
-- **Language:** Python (>=3.12)
-- **Package Manager:** `uv`
-
-8.  - **Backend:** FastAPI Server (`src/rag_dnd/server/`)
-9.  - **Core:** Shared Logic (`src/rag_dnd/core/`)
-10. - **Embeddings:** `jinaai/jina-embeddings-v3` (SOTA, GPU Accelerated).
-11. - **Storage:**
-12.     *   **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
-13.     *   **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
-14.
-15. ### Client/Server Architecture
-16.
-17. To support multiple simultaneous interfaces (Gemini CLI Hook, MCP Server, Admin CLI) without file locking issues on the local SQLite/Chroma databases, the system uses a central API:
-18.
-19. 1. **Backend (FastAPI):** Single "Gatekeeper" process managing all DB connections.
-20. 2. **Clients:**
-21.     *   **Admin CLI (`rag-cli`):** For adding/updating log files.
-22.     *   **Gemini Hook:** For injecting context into CLI chats.
-23.     *   **MCP Server (`rag-mcp`):** For exposing tools to AI assistants (Claude, Cursor, etc.).
-
 ## 🚀 Features
 
 - **SOTA Embeddings:** Uses `jina-embeddings-v3` (8192 context length, multilingual) powered by **CUDA 12.6**.
-- **Narrative aware:** Parent-Child retrieval ensures context is never lost at sentence boundaries.
+- **Hybrid Search:** Combines **Semantic Search** (Vector) with **Keyword Search** (BM25) using Reciprocal Rank Fusion (RRF) for optimal recall of both themes and specific names.
+- **Narrative Aware:** Parent-Child retrieval ensures context is never lost at sentence boundaries.
 - **Dual-Store Architecture:** Source of truth in SQLite, vectors in ChromaDB.
 - **High Performance:** GPU acceleration for embedding generation (20-50x speedup).
-- **Concurrency Safe:** Central FastAPI server handles all database IO.
+- **Client Ecosystem:**
+  - **Gemini CLI Hook:** Auto-injects context into `gemini` prompts.
+  - **MCP Server:** Provides "Search Logs" tools to Claude, Cursor, and other IDEs.
+  - **CLI Tool:** Administrative commands for ingestion and management.
+
+## 🏗️ Architecture
+
+The system uses a **Client-Server** model to allow concurrent access to the knowledge base:
+
+1.  **Backend (FastAPI):** Single "Gatekeeper" process managing SQLite/ChromaDB connections.
+2.  **Clients:** Admin CLI, Gemini Hook, and MCP Server all communicate via the REST API.
 
 ## 🛠️ Installation
 
@@ -73,18 +62,22 @@ uv run rag-cli rag add data/session_log.md
 Perform a search against the knowledge base:
 
 ```bash
-curl -X POST "http://localhost:8000/rag_query" \
+# Via CLI
+uv run rag-cli rag search "Wie is Nezznar?"
+
+# Via API
+curl -X POST "http://localhost:8001/rag_query" \
      -H "Content-Type: application/json" \
      -d '{"query": "Wat weet Jams over de Black Spider?"}'
 ```
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap & Status
 
 - [x] **Core RAG Logic:** Chunking, Embedding, Storage.
 - [x] **GPU Acceleration:** Jina V3 + CUDA 12.6.
 - [x] **Backend API:** FastAPI implementation.
-- [ ] **CLI Interface:** `rag-cli` for easy management.
-- [ ] **Gemini Hook:** Script to intercept specific prompt patterns.
-- [ ] **MCP Server:** Implementation of `search_logs` tool for IDEs.
+- [x] **Hybrid Search:** BM25 + Vector RRF Fusion.
+- [x] **Integrations:** Gemini CLI Hook, MCP Server, Admin CLI.
+- [ ] **Multi-Campaign Support:** (In Design Phase) - Separation of user data and application logic.
 
-See `doc/todo.md` for the detailed technical task list.
+See `doc/todo.md` for the technical task list and `doc/roadmap.md` for the long-term vision.

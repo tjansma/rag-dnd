@@ -14,26 +14,25 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
 - **Embeddings:**
   - `jinaai/jina-embeddings-v3` (SOTA 8192-token context, GPU accelerated).
   - Fallback: `intfloat/multilingual-e5-base`.
-- **Hardware Acceleration:** NVIDIA CUDA 12.6 support (torch 2.9.1+cu126).
+- **Search Strategy (Hybrid):**
+  - **Semantic:** ChromaDB (Vector Search).
+  - **Keyword:** BM25 (In-Memory Index).
+  - **Fusion:** Reciprocal Rank Fusion (RRF) combines scores.
 - **Storage Strategy (Parent-Child):**
   - **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
   - **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
-- **Core Libraries:**
-  - `fastapi`: REST API for concurrent access.
-  - `langchain` / `langchain-huggingface`: For RAG abstractions.
-  - `chromadb`: Vector Store.
-  - `sqlalchemy`: ORM for SQLite.
 
-## Current Status (Jan 2026)
+## Current Status (Feb 2026)
 
-- **Implemented:**
-- **Implemented:**
-  - **Shared Core (`src/rag_dnd/core`):** Database models, Embeddings, Logic.
-  - **FastAPI Server (`src/rag_dnd/server`):** Central entry point.
-  - **Client Library (`src/rag_dnd/client`):** Python client for API.
-  - **CLI Tools (`src/rag_dnd/cli`):** `rag-cli` command.
-  - **Hooks (`src/rag_dnd/hooks`):** Gemini integration scripts.
-  - **MCP Server (`src/rag_dnd/mcp`):** IDE integration.
+- **Fully Implemented:**
+  - **Core Logic:** Hybrid Search, Parent-Child Retrieval, GPU Acceleration.
+  - **Server:** FastAPI backend handles concurrent requests.
+  - **Clients:** `rag-cli` (Admin), `rag-mcp` (IDE), Gemini Hooks (Context).
+  - **Ingestion:** Markdown support with hash-based update detection.
+
+- **In Progress / Planned:**
+  - **Multi-Campaign Architecture:** Redesigning to support multiple independent campaigns stored in user profile (`~/.rag_dnd`).
+  - **Client-Server Separation:** Moving prompt rendering logic to the server.
 
 ## Setup & Usage
 
@@ -42,17 +41,8 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
 Requires a NVIDIA GPU for optimal performance (using `cuda` device).
 
 ```bash
-# Install dependencies (auto-detects CUDA 12.6)
 uv sync
-
-# Configure .env (optional, defaults provided in config.py)
-# RAG_DND_EMBEDDINGS_MODEL=jinaai/jina-embeddings-v3
-# RAG_DND_EMBEDDINGS_DEVICE=cuda
 ```
-
-### 2. Running the Server
-
-Start the API server (Must be running for Hooks/CLI to work):
 
 ### 2. Running the Server
 
@@ -62,60 +52,15 @@ Start the API server (Must be running for Hooks/CLI to work):
 uv run rag-server
 ```
 
-### 3. Gemini CLI Hook Setup
+### 3. Integrations
 
-The project includes hooks to inject RAG context into Gemini CLI.
+- **Gemini CLI:** Automatically active via `rag-hook-context` if `.gemini/settings.json` has hooks enabled.
+- **MCP:** Configure your IDE to run `uv run rag-mcp` in the project directory.
 
-1.  **Enable Hooks Globally:**
-    Ensure `C:\Users\<user>\.gemini\settings.json` has:
+## Documentation Index
 
-    ```json
-    "tools": { "enableHooks": true }
-    ```
-
-2.  **Project Configuration:**
-    The project `.gemini/settings.json` is configured to run `rag-hook-context` and `rag-hook-logger`.
-
-3.  **Usage:**
-    Just ask a question in Gemini CLI. The hook will:
-    - Intercept the prompt.
-    - Query the local RAG API.
-    - Inject relevant logs as `additionalContext`.
-
-### 4. CLI Tool
-
-Manage documents via the command line:
-
-```bash
-# Add a document
-uv run rag-cli rag add data/session_log.md
-
-# Search manually
-uv run rag-cli rag search "Wie is Nezznar?"
-```
-
-### 5. MCP Server Setup
-
-To use the RAG system in Cursor or Claude Desktop:
-
-1.  **Configure:** Add the server to your IDE's MCP settings (e.g., `claude_desktop_config.json` or `.gemini/settings.json`).
-
-    ```json
-    "mcpServers": {
-      "rag-dnd": {
-        "command": "uv",
-        "args": [
-          "--directory",
-          "C:\\Development\\src\\_AI\\rag_dnd",
-          "run",
-          "rag-mcp"
-        ]
-      }
-    }
-    ```
-
-## Documentation
-
-- **`doc/todo.md`**: Detailed technical roadmap and remaining tasks.
+- **`doc/todo.md`**: Current technical task list and v0.x roadmap.
+- **`doc/roadmap.md`**: Long-term vision and feature requests.
+- **`doc/campaign_structure_design.md`**: Design document for the upcoming Multi-Campaign refactor.
 - **`doc/llms.txt`**: References for Gemini CLI integration.
 - **`doc/fastmcp.txt`**: Documentation for FastMCP module.
