@@ -73,13 +73,13 @@
   - [ ] Parallelize vector searches.
   - [ ] Rerank/Deduplicate results.
 
-### 3. Feature: Hybrid Search (BM25 + Semantic)
+### 3. Feature: Hybrid Search (BM25 + Semantic) (Completed)
 
 - **Goal**: Improve retrieval of specific terms (names, locations) that semantic search misses.
 - **Strategy**:
-  - [ ] **SQLite FTS5**: Implement `CREATE VIRTUAL TABLE chunks_fts USING fts5(text, content='chunks', content_rowid='id')`.
-  - [ ] **Sync**: Ensure FTS index stays in sync (Triggers or App-side).
-  - [ ] **Search**: Implement Reciprocal Rank Fusion (RRF) to combine Vector + Keyword scores.
+  - [x] **Ensemble Retriever**: Implemented custom `VectorStore` with `rank_bm25`.
+  - [x] **In-Memory Index**: Builds BM25 index on startup from ChromaDB documents.
+  - [x] **Search**: Implemented Reciprocal Rank Fusion (RRF) to combine Vector + Keyword scores.
 
 ### 3. Tooling: Re-indexing & Maintenance
 

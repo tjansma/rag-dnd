@@ -22,7 +22,7 @@ _DEFAULTS = {
     "collection_name": "rag_dnd",
     "log_level": "WARNING",
     "log_file": "log/app.log",
-    "upload_dir": "uploads",
+    "upload_dir": Path("uploads"),
     "query_expansion_enabled": True,
     "query_expansion_model": "",
     "query_expansion_provider": "",

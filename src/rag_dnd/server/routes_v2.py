@@ -23,7 +23,7 @@ def store_document(file: UploadFile, collection: str | None = None):
                                  Defaults to None, which uses the default 
                                  collection name from the config.
     """
-    config = Config()
+    config = Config.load()
 
     # Check if a collection was provided, if not use the default collection name from the config
     if collection is None:
@@ -57,7 +57,7 @@ def update_document(file: UploadFile, collection: str | None = None):
                                  Defaults to None, which uses the default 
                                  collection name from the config.
     """
-    config = Config()
+    config = Config.load()
 
     # Check if a collection was provided, if not use the default collection name from the config
     if collection is None:

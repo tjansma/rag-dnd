@@ -23,7 +23,7 @@ def receive_file(file: UploadFile) -> Path:
     Returns:
         Path: The path to the uploaded file.
     """
-    config = Config()
+    config = Config.load()
 
     # Check if a filename was provided
     if file.filename is None:

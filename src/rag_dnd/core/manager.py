@@ -15,7 +15,7 @@ from .database import get_session, init_db
 from .embeddings import get_embedding_instance
 from .llm import get_llm
 from .models import Document, Collection, Chunk, QueryResult
-from .store import VectorStore
+from .store import VectorStore, get_vector_store
 from .chunker import Chunker
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
     embedder = get_embedding_instance()
     logger.debug(f"Connecting to vector store: {config.vector_database}")
-    vector_store = VectorStore(config)
+    vector_store = get_vector_store(config)
 
     logger.debug(f"Adding chunks to vector store: {config.vector_database}.")
     for chunk in chunks:
@@ -122,6 +122,10 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
         logger.debug(f"Adding chunk to vector store: {chunk.id}")
         vector_store.add_chunk(chunk)
     
+    # Rebuild Vector Store BM25 index
+    logger.debug(f"Rebuilding Vector Store BM25 index.")
+    vector_store.rebuild_bm25_index()
+
     # Close the session after all operations are complete
     session.close()
     logger.info(f"Stored document: {filename} with {len(chunks)} chunks.")
@@ -146,9 +150,9 @@ def query(query: str, config: Config=Config.load()) -> list[QueryResult]:
 
     # 2. Query the vector store
     logger.debug(f"Connecting to vector store: {config.vector_database}")
-    vector_store = VectorStore(config)
+    vector_store = get_vector_store(config)
     logger.debug(f"Querying vector store for relevant chunks.")
-    relevant_chunk_ids = vector_store.query_chunk_ids(query_embedding)
+    relevant_chunk_ids = vector_store.hybrid_search(query, query_embedding)
 
     # 3. Retrieve the relevant chunks
     # We query the SQLite DB to get the full text content for the IDs returned by the Vector Store
@@ -200,7 +204,7 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
         raise FileNotFoundError(f"Document {custom_filename} not found.")
     
     # Connect to vector store
-    vector_store = VectorStore(config)
+    vector_store = get_vector_store(config)
     
     # 1. Clean up Vector Store (Child) first
     # We retrieve all Chunk IDs associated with this Document from SQLite
@@ -219,6 +223,10 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
     session.commit()
     session.close()
     logger.info(f"Deleted document: {custom_filename}")
+
+    # 3. Rebuild Vector Store BM25 index
+    logger.debug(f"Rebuilding Vector Store BM25 index.")
+    vector_store.rebuild_bm25_index()
 
 
 def update_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:

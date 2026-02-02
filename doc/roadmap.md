@@ -54,6 +54,6 @@ This document outlines the vision and future features for the `rag-dnd` project.
 
 ## 5. Search Intelligence
 
-- [ ] **Hybrid Search (BM25 + Semantic)**
-  - Implement **SQLite FTS5** Virtual Tables for full-text (keyword) search.
+- [x] **Hybrid Search (BM25 + Semantic)**
+  - Implement **In-Memory BM25** using `rank_bm25` (Ensemble Retriever).
   - Implement **Reciprocal Rank Fusion (RRF)** to combine Jina-v3 vectors with BM25 scores.
