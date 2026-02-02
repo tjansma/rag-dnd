@@ -69,3 +69,10 @@ This document outlines the vision and future features for the `rag-dnd` project.
 - [x] **Hybrid Search (BM25 + Semantic)**
   - Implement **In-Memory BM25** using `rank_bm25` (Ensemble Retriever).
   - Implement **Reciprocal Rank Fusion (RRF)** to combine Jina-v3 vectors with BM25 scores.
+
+## 7. Advanced AI Adaptation (Future)
+
+- [ ] **Campaign-Specific LoRA Adapters**
+  - Train lightweight LoRA adapters on campaign logs (Domain Adaptation).
+  - Use for **Query Enhancement**: Better translation of vague player intent to specific RAG queries.
+  - **Per-Campaign Loading**: Hot-swap adapters based on the active campaign context.
