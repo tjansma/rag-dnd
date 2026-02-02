@@ -43,6 +43,7 @@ class Document(ORMBase):
 
 @dataclass
 class Sentence:
+    """Class to represent a sentence."""
     chunk: "Chunk"
     text: str
     embedding_vector: Optional[list[float]] = None
@@ -68,5 +69,6 @@ class Chunk(ORMBase):
 
 @dataclass
 class QueryResult:
+    """Class to represent a query result."""
     text: str
     source_document: str

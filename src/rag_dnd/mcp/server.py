@@ -8,7 +8,7 @@ rag_client = RAGClient(ClientConfig.load())
 mcp = FastMCP("D&D RAG MCP Server")
 
 @mcp.tool
-def search(query: str) -> str:
+def search_rag(query: str) -> str:
     """
     Search the RAG system for the given query.
     
