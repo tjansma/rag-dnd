@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, UploadFile, HTTPException
 
 from ..config import Config
-from .. import core as rag
+from .. import rag
 from .upload import temporary_upload
 
 logger = logging.getLogger(__name__)

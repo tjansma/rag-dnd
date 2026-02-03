@@ -9,6 +9,7 @@ import dotenv
 dotenv.load_dotenv()
 
 _DEFAULTS = {
+    "data_dir": None,
     "session_log": "data/session_log.txt",
     "transcript_database": "data/transcript.db",
     "api_ip": "127.0.0.1",
@@ -34,6 +35,7 @@ _DEFAULTS = {
 @dataclass
 class Config:
     """Configuration for the server application."""
+    data_dir: Path
     session_log: str
     transcript_database: str
     api_ip: str

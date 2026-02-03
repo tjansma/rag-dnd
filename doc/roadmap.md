@@ -76,3 +76,18 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Train lightweight LoRA adapters on campaign logs (Domain Adaptation).
   - Use for **Query Enhancement**: Better translation of vague player intent to specific RAG queries.
   - **Per-Campaign Loading**: Hot-swap adapters based on the active campaign context.
+
+## 8. Experimental / Visionary (Far Future)
+
+- [ ] **GraphRAG (Knowledge Graph Integration)**
+  - Augment vector search with a graph database (e.g., NetworkX/Neo4j).
+  - Extract entities and relations (`(Jams)-[KNOWS]->(Nezznar)`) during ingestion.
+  - Enable multi-hop reasoning questions ("Who knows someone that hates the Zhentarim?").
+- [ ] **Voice Mode (Speech-to-Speech)**
+  - **Input**: Real-time transcription using local Whisper.
+  - **Output**: Low-latency TTS (e.g., XTTS/Piper) for the DM's voice.
+  - Enable hands-free roleplay.
+- [ ] **Live DM HUD (Heads-Up Display)**
+  - Real-time dashboard that "listens" to the game state.
+  - Proactively displays relevant statblocks, maps, and inventory without explicit queries.
+  - "Zero-click" intelligence.
