@@ -206,6 +206,21 @@ class Config:
         # ------------------------------------------------------------------
         if os.getenv("RAG_DND_CONTENTDB"):
             actual_config["content_database"] = os.getenv("RAG_DND_CONTENTDB")
+
+        # !!!!! HACK!!!! Should be fixed later to use a proper config value
+        # Build the database URL from the path
+        # Default to SQLite if no full URL is provided
+        db_path = actual_config["content_database"]
+        if "://" not in db_path:
+            # It's a plain path, construct a SQLite URL
+            actual_config["content_database_url"] = f"sqlite:///{db_path}"
+        else:
+            # It's already a full URL (e.g., postgresql...)
+            actual_config["content_database_url"] = db_path
+
+        # Remove the intermediate key so it doesn't clash with the dataclass
+        del actual_config["content_database"]
+        # !!!!! HACK!!!! Should be fixed later to use a proper config value
         
         if os.getenv("RAG_DND_COLLECTION_PREFIX"):
             model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")

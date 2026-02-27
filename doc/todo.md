@@ -139,3 +139,6 @@
 
 - [ ] **Agent Modularization**: Research Pub/Sub architecture.
 - [ ] **Multi-Agent Simulation**: Independent agents subscribing to the transcript stream.
+- [ ] **Technical Debt: Request-Scoped Database Sessions**:
+  - Momenteel wordt `get_session()` lokaal in helper functies (zoals in `manager.py`) aangeroepen, wat leidt tot instabiele transacties per onderdeel en een 'Detached Instance' workaround.
+  - _Oplossing_: FastAPI Dependency Injection (`Depends(get_db)`) gebruiken in routers om 1 `Session` te maken per HTTP Request en deze door the geven aan alle `rag` module functies en actieve objecten.

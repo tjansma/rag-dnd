@@ -107,7 +107,37 @@ The current `instructions.j2` is excellent but complex. To optimize it for gener
 
 ## Client-Server Data Separation
 
-To maintain a clean architecture, we will strictly distinguish between **Server Data** (Content & Knowledge) and **Client Data** (Configuration & State).
+To maintain a clean architecture, we will strictly distinguish between **Data (Storage)** and **Behavior (Logic)** within the backend, as well as separating Server Data from Client Data.
+
+### Backend Responsibilities: Datamodels vs. Business Logic
+
+1.  **`CampaignMetadata` (The ORM Model in `models.py`)**
+    - **Purpose**: Purely defines the schema for SQLite (the "Registration").
+    - **Responsibility**: Reading and writing strings/ints to the `campaign_metadata` table.
+    - **Knowledge**: Knows _what_ the file paths are (e.g., `session_log_file`), but cannot open or interact with them. It knows nothing of Markdown, YAML, or Jinja.
+
+2.  **`Campaign` (The Service Class in `campaign.py`)**
+    - **Purpose**: The active "Game Master" engine for a running session.
+    - **Responsibility**: Orchestrating I/O, file management, and LLM orchestration for a specific campaign. All operations run within the scope of a single campaign instance.
+    - **Architecture**: Acts as a wrapper around `CampaignMetadata`. It uses the paths stored in the metadata to actually read/write files.
+    - **Construction** (Classmethod pattern):
+      - `__init__(self, metadata: CampaignMetadata)`: Simple constructor, accepts only the finished metadata object.
+      - `from_db_by_id(cls, id)`: Load from database by ID.
+      - `from_db_by_short_name(cls, name)`: Load from database by short name.
+      - `from_yaml(cls, path)`: Bootstrap a _new_ campaign from a `campaign.yaml` file (import/first-time setup only; the database is the runtime source of truth, not the YAML).
+    - **Behavior** (methods absorb functionality from the legacy `manager.py`):
+      - `store_document(filename)`: Index a document into this campaign's collection and vector store.
+      - `delete_document(filename)`: Remove a document from this campaign's stores.
+      - `update_document(filename)`: Re-index a changed document (hash check → delete + store).
+      - `query(query_text)`: Hybrid search scoped to this campaign's vector store.
+      - `add_to_session_log(text)`: Append to the session log file and trigger re-indexing.
+      - `generate_summary()`: Read the log, call the LLM, overwrite the active summary file.
+      - `get_system_prompt()`: Read character sheets and base prompts, assemble dynamically.
+
+3.  **`manager.py` (Legacy → To Be Absorbed)**
+    - Written before the multi-campaign architecture. Contains loose functions (`store_document`, `query`, etc.) that operate on global defaults (`Config.load()`, `get_session()`).
+    - These functions will be migrated into `Campaign` methods incrementally. The migration can happen gradually: the `Campaign` methods can initially _delegate_ to `manager.py` functions, then absorb them over time.
+    - After migration, only truly campaign-agnostic utilities (e.g., `expand_query`, `prompt_llm`) remain and move to `llm.py` or similar. `manager.py` and `services.py` can then be removed.
 
 ### Server Responsibility (The "Host")
 
@@ -153,6 +183,7 @@ Since modern LLMs (Gemini 1.5) have massive context windows (1M+ tokens), the si
 2.  **Rendering**: When the Server renders `instructions.j2`, it detects these file references.
 3.  **Injection**: Instead of leaving a path string (which the client can't read), the Server reads the file content and injects it into the prompt.
     - _Example System Prompt Output_:
+
       ```markdown
       # Player: Jams Capbarren
 

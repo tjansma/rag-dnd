@@ -1,10 +1,10 @@
 """RDBMS related functions."""
 import logging
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..config import Config
-from .models import ORMBase
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,8 @@ def init_db():
     Returns:
         None
     """
+    from .models import ORMBase
+
     # INFO potential risk of logging sensitive information (password in URL)
     logger.debug(f"Initializing database: {Config.load().content_database_url}")
     engine = _get_engine()
