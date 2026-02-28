@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import logging
 
 from ..client import transcribe_turn
 
@@ -9,13 +8,6 @@ if os.name == 'nt':
     sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore
     sys.stdout.reconfigure(encoding='utf-8')    # pyrefly: ignore
 
-
-# Setup logging for errors
-logging.basicConfig(
-    filename='rag_log_hook_errors.log',
-    level=logging.ERROR,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
 
 def main():
     try:
@@ -29,7 +21,6 @@ def main():
         try:
             input_data = json.loads(raw_input)
         except json.JSONDecodeError:
-            logging.error("Invalid JSON received")
             print(json.dumps({"decision": "continue"}))
             return
 
@@ -43,7 +34,6 @@ def main():
 
     except Exception as e:
         # Catch-all to prevent CLI hanging
-        logging.critical(f"Critical Hook Error: {e}")
         print(json.dumps({"decision": "continue"}))
 
 if __name__ == "__main__":

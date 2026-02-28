@@ -75,7 +75,8 @@ def store_document(filename: str, custom_filename: str | None = None,
         custom_filename = os.path.basename(filename)
     
     # Calculate SHA256 hash to detect changes and avoid duplicate processing
-    file_hash = sha256(open(filename).read().encode()).hexdigest()
+    with open(filename, "rb") as f:
+        file_hash = sha256(f.read()).hexdigest()
     
     # Initialize DB connection and ensure the target collection exists
     init_db()
@@ -276,7 +277,8 @@ def update_document(filename: str,
         custom_filename = os.path.basename(filename)
     
     # Calculate file hash, to check if the file has changed
-    file_hash = sha256(open(filename).read().encode()).hexdigest()
+    with open(filename, "rb") as f:
+        file_hash = sha256(f.read()).hexdigest()
     
     # Connect to SQLite database
     session = get_session()

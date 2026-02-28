@@ -7,7 +7,6 @@ from typing import get_args,List, Literal
 import re
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
-from langchain_core.documents.base import Document
 
 from .models import Document, Chunk, Sentence
 from .services import load_document_text
