@@ -62,7 +62,7 @@ def get_session() -> Generator[Session, None, None]:
 
     logger.debug(f"Getting session from database: {engine}")
     try:
-        session = sessionmaker(bind = engine)()
+        session = sessionmaker(bind=engine, expire_on_commit=False)()
         yield session
     finally:
         logger.debug(f"Closing session: {session}")
