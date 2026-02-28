@@ -1,4 +1,6 @@
 """RDBMS related functions."""
+from contextlib import contextmanager
+from typing import Generator
 import logging
 
 from sqlalchemy import create_engine
@@ -47,14 +49,21 @@ def init_db():
     ORMBase.metadata.create_all(engine)
 
 
-def get_session() -> Session:
+@contextmanager
+def get_session() -> Generator[Session, None, None]:
     """
-    Get a session.
+    Get a session and close it after use.
     
-    Returns:
+    Yields:
         Session: A session.
     """
     # INFO potential risk of logging sensitive information (password in URL)
-    logger.debug(f"Getting session from database: {Config.load().content_database_url}")
     engine = _get_engine()
-    return sessionmaker(bind=engine)()
+
+    logger.debug(f"Getting session from database: {engine}")
+    try:
+        session = sessionmaker(bind = engine)()
+        yield session
+    finally:
+        logger.debug(f"Closing session: {session}")
+        session.close()

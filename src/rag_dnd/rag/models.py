@@ -108,10 +108,14 @@ class CampaignMetadata(ORMBase):
     def load_by_id(cls, id: int) -> "CampaignMetadata":
         """Load campaign metadata by id."""
         with get_session() as session:
-            return session.query(cls).filter(cls.id == id).first()
+            metadata = session.query(cls).filter(cls.id == id).first()
+            session.expunge_all()
+            return metadata
 
     @classmethod
     def load_by_short_name(cls, name: str) -> "CampaignMetadata":
         """Load campaign metadata by name."""
         with get_session() as session:
-            return session.query(cls).filter(cls.short_name == name).first()
+            metadata = session.query(cls).filter(cls.short_name == name).first()
+            session.expunge_all()
+            return metadata

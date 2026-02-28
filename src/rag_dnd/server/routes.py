@@ -43,8 +43,10 @@ async def store_document(request: StoreRequest):
 @router.put("/document")
 async def update_document(request: UpdateRequest):
     try:
+        logger.info(f"Updating document: {request.file_path}")
         rag.update_document(request.file_path)
     except (FileNotFoundError, rag.DocumentNotFoundError):
+        logger.error(f"Update failed: Document {request.file_path} not found in DB.")
         raise HTTPException(status_code=404, detail="Document not found.")
     except Exception as e:
         logger.error(f"Error updating document: {e}")
@@ -53,8 +55,10 @@ async def update_document(request: UpdateRequest):
 @router.delete("/document")
 async def delete_document(request: DeleteRequest):
     try:
+        logger.info(f"Deleting document: {request.file_path}")
         rag.delete_document(request.file_path)
     except rag.DocumentNotFoundError:
+        logger.error(f"Delete failed: Document {request.file_path} not found in DB.")
         raise HTTPException(status_code=404,
                             detail="Document not found in DB.")
     except Exception as e:
@@ -63,9 +67,14 @@ async def delete_document(request: DeleteRequest):
 
 @router.post("/rag_query")
 async def query_rag(request: QueryRequest) -> list[QueryResponse]:
-    results = rag.query(request.query, request.limit)
-    return [ QueryResponse(text=result.text,
-             source_document=result.source_document) for result in results]
+    try:
+        logger.info(f"Querying RAG: {request.query}")
+        results = rag.query(request.query, request.limit)
+        return [ QueryResponse(text=result.text,
+                source_document=result.source_document) for result in results]
+    except Exception as e:
+        logger.error(f"Error querying RAG: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
 @router.post("/llm_generate")
 async def generate_llm(request: list[LLMMessage]) -> str:

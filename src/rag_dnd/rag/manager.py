@@ -46,47 +46,34 @@ def ensure_collection(session: Session, collection_name: str) -> Collection:
     return collection
 
 
-def store_document(filename: str, custom_filename: str | None = None, 
-                   config: Config | None = None) -> None:
-    """
-    Store a document in the database.
-    
+def _store_impl(session: Session, filename: str, config: Config,
+                custom_filename: str) -> None:
+    """Internal: store a document using an existing session.
+
+    Handles SQLite persistence, embedding, and ChromaDB indexing.
+    The caller is responsible for session lifecycle management.
+
     Args:
+        session (Session): An active database session.
         filename (str): The path to the document.
-        custom_filename (str | None): The custom filename to use.
         config (Config): The configuration.
+        custom_filename (str): The identifier used in the database.
 
     Raises:
-        FileNotFoundError: If the source file does not exist.
         DocumentExistsError: If the document already exists in the database.
-        DatabaseError: If any other database error occurs.
     """
-    if config is None:
-        config = Config.load()
-
-    logger.info(f"Storing document: {filename}")
-    # Check if the source file exists
-    if not os.path.exists(filename):
-        logger.error(f"File {filename} not found.")
-        raise FileNotFoundError(f"File {filename} not found.")
-    
-    # If no custom filename is provided, use the filename from the source file
-    if custom_filename is None:
-        custom_filename = os.path.basename(filename)
-    
     # Calculate SHA256 hash to detect changes and avoid duplicate processing
     with open(filename, "rb") as f:
         file_hash = sha256(f.read()).hexdigest()
-    
-    # Initialize DB connection and ensure the target collection exists
-    init_db()
-    session = get_session()
+
     collection = ensure_collection(session, config.collection_name)
-    
-    # Create the Document object. 
-    # Important: 'custom_filename' is the persistent identifier in the DB, 
+
+    # Create the Document object.
+    # Important: 'custom_filename' is the persistent identifier in the DB,
     # even if 'filename' is a temporary uploaded file path.
-    document = Document(file_name=filename, file_hash=file_hash, custom_filename=custom_filename, collection_id=collection.id)
+    document = Document(file_name=filename, file_hash=file_hash,
+                        custom_filename=custom_filename,
+                        collection_id=collection.id)
 
     # Chunk the document
     logger.debug(f"Chunking document with strategy: heading2")
@@ -97,21 +84,16 @@ def store_document(filename: str, custom_filename: str | None = None,
     # Add the document and chunks to the database
     logger.debug(f"Adding document to database.")
     try:
-        # Add the parent document first
         session.add(document)
-
-        # Add all generated chunks (children)
-        logger.debug(f"Adding chunks to database.")
         session.add_all(chunks)
-        
-        # Commit transaction to persist Parent (Document) and Children (Chunks) in SQLite
         session.commit()
+        session.expunge_all()
     except DatabaseError as e:
         logger.error(f"Error adding '{filename}' to database: {e}")
         session.rollback()
         raise DocumentExistsError(f"Document '{filename}' already exists.")
 
-    # Connect to embeddings model and vector store
+    # ChromaDB operations (outside session — SQLite is source of truth)
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
     embedder = get_embedding_instance()
     logger.debug(f"Connecting to vector store: {config.vector_database}")
@@ -119,21 +101,46 @@ def store_document(filename: str, custom_filename: str | None = None,
 
     logger.debug(f"Adding chunks to vector store: {config.vector_database}.")
     for chunk in chunks:
-        # Embed each chunk (calculate vector) using the configured model
         logger.debug(f"Embedding chunk: {chunk.id}")
         embedder.embed(chunk)
-        
-        # Add the chunk with its embedding to the Vector Store (ChromaDB)
         logger.debug(f"Adding chunk to vector store: {chunk.id}")
         vector_store.add_chunk(chunk)
-    
+
     # Rebuild Vector Store BM25 index
     logger.debug(f"Rebuilding Vector Store BM25 index.")
     vector_store.rebuild_bm25_index()
-
-    # Close the session after all operations are complete
-    session.close()
     logger.info(f"Stored document: {filename} with {len(chunks)} chunks.")
+
+
+def store_document(filename: str, custom_filename: str | None = None,
+                   config: Config | None = None) -> None:
+    """Store a document in the database.
+
+    Public API that manages its own session. For internal use with a shared
+    session, see _store_impl.
+
+    Args:
+        filename (str): The path to the document.
+        custom_filename (str | None): The custom filename to use.
+        config (Config): The configuration.
+
+    Raises:
+        FileNotFoundError: If the source file does not exist.
+        DocumentExistsError: If the document already exists in the database.
+    """
+    if config is None:
+        config = Config.load()
+
+    logger.info(f"Storing document: {filename}")
+    if not os.path.exists(filename):
+        logger.error(f"File {filename} not found.")
+        raise FileNotFoundError(f"File {filename} not found.")
+
+    if custom_filename is None:
+        custom_filename = os.path.basename(filename)
+
+    with get_session() as session:
+        _store_impl(session, filename, config, custom_filename)
 
 def query(query: str,
           limit: int = 5,
@@ -169,34 +176,77 @@ def query(query: str,
     # We query the SQLite DB to get the full text content for the IDs returned by the Vector Store
     # INFO potential risk of logging sensitive information (password in URL)
     logger.debug(f"Retrieving relevant chunks from database: {config.content_database_url}")
-    session = get_session()
-    chunks = session.query(Chunk)\
-        .options(joinedload(Chunk.parent_document))\
-        .filter(Chunk.id.in_(relevant_chunk_ids))\
-        .all()
-    
-    # Detach objects from session so they can be used after session.close()
-    session.expunge_all()
-    
-    logger.info(f"Retrieved {len(chunks)} relevant chunks.")
-
-    # Convert internal Chunk objects to cleaner QueryResult objects
     results = []
-    for chunk in chunks:
-        results.append(
-            QueryResult(
-                text=chunk.text, 
-                source_document=chunk.parent_document.file_name
+    with get_session() as session:
+        chunks = session.query(Chunk)\
+            .options(joinedload(Chunk.parent_document))\
+            .filter(Chunk.id.in_(relevant_chunk_ids))\
+            .all()
+    
+        logger.info(f"Retrieved {len(chunks)} relevant chunks.")
+
+        # Convert internal Chunk objects to cleaner QueryResult objects
+        for chunk in chunks:
+            results.append(
+                QueryResult(
+                    text=chunk.text, 
+                    source_document=chunk.parent_document.file_name
+                )
             )
-        )
+
     return results
+
+def _delete_impl(session: Session, custom_filename: str,
+                 config: Config) -> None:
+    """Internal: delete a document using an existing session.
+
+    Handles ChromaDB cleanup and SQLite deletion.
+    The caller is responsible for session lifecycle management.
+
+    Args:
+        session (Session): An active database session.
+        custom_filename (str): The identifier used in the database.
+        config (Config): The configuration.
+
+    Raises:
+        DocumentNotFoundError: If the document does not exist in the database.
+    """
+    # Query the document by custom_filename
+    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
+    if document is None:
+        logger.error(f"Delete failed: Document {custom_filename} not found in DB.")
+        raise DocumentNotFoundError(f"Delete failed: Document {custom_filename} not found in DB.")
+
+    # 1. Clean up Vector Store (Child) first
+    vector_store = get_vector_store(config)
+    chunk_ids = tuple(chunk.id for chunk in document.chunks)
+    vector_store.delete_chunks_by_id(chunk_ids)
+
+    # 2. Clean up SQLite (Parent)
+    # Chunks in SQLite are automatically deleted via cascade="all, delete-orphan"
+    try:
+        logger.debug(f"Deleting document: {document}")
+        session.delete(document)
+        session.commit()
+    except DatabaseError as e:
+        logger.error(f"Error deleting document: {e}")
+        session.rollback()
+        raise
+
+    # 3. Rebuild Vector Store BM25 index
+    logger.debug(f"Rebuilding Vector Store BM25 index.")
+    vector_store.rebuild_bm25_index()
+    logger.info(f"Deleted document: {custom_filename}")
+
 
 def delete_document(filename: str,
                     custom_filename: str | None = None,
                     config: Config | None = None) -> None:
-    """
-    Delete a document from the database.
-    
+    """Delete a document from the database.
+
+    Public API that manages its own session. For internal use with a shared
+    session, see _delete_impl.
+
     Args:
         filename (str): The path to the document.
         custom_filename (str | None): The custom filename to use.
@@ -209,51 +259,21 @@ def delete_document(filename: str,
         config = Config.load()
 
     logger.info(f"Deleting document: {custom_filename}")
-    # If no custom filename is provided, use the filename from the source file
     if custom_filename is None:
         custom_filename = os.path.basename(filename)
-    
-    # Connect to SQLite database
-    session = get_session()
-    
-    # Query the document by custom_filename
-    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
-    if document is None:
-        logger.error(f"Delete failed: Document {custom_filename} not found in DB.")
-        raise DocumentNotFoundError(f"Delete failed: Document {custom_filename} not found in DB.")
-    
-    # Connect to vector store
-    vector_store = get_vector_store(config)
-    
-    # 1. Clean up Vector Store (Child) first
-    # We retrieve all Chunk IDs associated with this Document from SQLite
-    chunk_ids = tuple(chunk.id for chunk in document.chunks)
-    
-    # Then we delete these specific chunks from the Vector Store/ChromaDB
-    # This ensures no orphaned vectors remain after the SQLite deletion
-    vector_store.delete_chunks_by_id(chunk_ids)
 
-    # 2. Clean up SQLite (Parent)
-    # INFO: Chunks in SQLite are automatically deleted via
-    # 'cascade="all, delete-orphan"' 
-    # configured in the SQL Alchemy model when the parent Document is deleted.
-    logger.debug(f"Deleting document: {document}")
-    session.delete(document)
-    session.commit()
-    session.close()
-    logger.info(f"Deleted document: {custom_filename}")
-
-    # 3. Rebuild Vector Store BM25 index
-    logger.debug(f"Rebuilding Vector Store BM25 index.")
-    vector_store.rebuild_bm25_index()
+    with get_session() as session:
+        _delete_impl(session, custom_filename, config)
 
 
 def update_document(filename: str,
                     custom_filename: str | None = None,
                     config: Config | None = None) -> None:
-    """
-    Update a document in the database.
-    
+    """Update a document in the database.
+
+    Performs a full delete-and-replace cycle using a single shared session.
+    If the file content has not changed (same SHA256 hash), this is a no-op.
+
     Args:
         filename (str): The path to the document.
         custom_filename (str | None): The custom filename to use.
@@ -267,45 +287,36 @@ def update_document(filename: str,
         config = Config.load()
 
     logger.info(f"Updating document: {filename}")
-    # Check if source file exists
     if not os.path.exists(filename):
         logger.error(f"Update failed: File {filename} not found on server FS.")
         raise FileNotFoundError(f"Update failed: File {filename} not found on server FS.")
-    
-    # If no custom filename is provided, use the filename from the source file
+
     if custom_filename is None:
         custom_filename = os.path.basename(filename)
-    
-    # Calculate file hash, to check if the file has changed
+
+    # Calculate file hash to check if the file has changed
     with open(filename, "rb") as f:
         file_hash = sha256(f.read()).hexdigest()
-    
-    # Connect to SQLite database
-    session = get_session()
-    
-    # Query the document by custom_filename
-    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
-    if document is None:
-        logger.error(f"Document {filename} not found in database.")
-        raise DocumentNotFoundError(f"Document {filename} not found in database.")
-    
-    # Check if the file has changed
-    if document.file_hash == file_hash:
-        # If the file has not changed, do nothing
-        logger.warning(f"Document {filename} is already up to date.")
-        return
-    
-    # Close the read-only session before starting write operations
-    session.close()
 
-    # Perform a full "Delete & Replace" cycle
-    # This is safer than partial updates as it ensures no stale chunks or vectors remain
-    # if the document content has changed significantly.
-    logger.debug(f"Deleting document: {filename}")
-    delete_document(filename, custom_filename=custom_filename, config=config)
-    
-    logger.debug(f"Storing document: {filename}")
-    store_document(filename, custom_filename=custom_filename, config=config)
+    # Use a single shared session for the entire delete + store cycle
+    with get_session() as session:
+        # Check if the document exists
+        document = session.query(Document).filter_by(custom_filename=custom_filename).first()
+        if document is None:
+            logger.error(f"Document {filename} not found in database.")
+            raise DocumentNotFoundError(f"Document {filename} not found in database.")
+
+        # Check if the file has changed
+        if document.file_hash == file_hash:
+            logger.warning(f"Document {filename} is already up to date.")
+            return
+
+        # Perform a full "Delete & Replace" cycle using the shared session
+        logger.debug(f"Deleting document: {filename}")
+        _delete_impl(session, custom_filename, config)
+
+        logger.debug(f"Storing document: {filename}")
+        _store_impl(session, filename, config, custom_filename)
 
     logger.info(f"Updated document: {filename}")
 

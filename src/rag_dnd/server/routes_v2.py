@@ -1,5 +1,4 @@
 """FastAPI routes for API requests."""
-from sqlalchemy.exc import DatabaseError
 import logging
 
 from fastapi import APIRouter, UploadFile, HTTPException
@@ -39,7 +38,7 @@ def store_document(file: UploadFile, collection: str | None = None):
                                    custom_filename=file.filename, 
                                    config=config)
                 logger.debug(f"Document added to database successfully: {file.filename}")
-            except DatabaseError as e:
+            except rag.DocumentExistsError as e:
                 logger.error(f"Error adding document to database: {e}")
                 raise HTTPException(status_code=409, detail="Document already exists")
     except OSError as e:
@@ -74,10 +73,10 @@ def update_document(file: UploadFile, collection: str | None = None):
                                     config=config)
             except FileNotFoundError as e:
                 logger.error(f"Error updating document in database: {e}")
-                raise HTTPException(status_code=404, detail="Document does not exist")
-            except DatabaseError as e:
+                raise HTTPException(status_code=404, detail="Document does not exist on file system")
+            except rag.DocumentNotFoundError as e:
                 logger.error(f"Error updating document in database: {e}")
-                raise HTTPException(status_code=500, detail="Unexpected database error")
+                raise HTTPException(status_code=404, detail="Document does not exist in database")
     except OSError as e:
         logger.error(f"Error updating document in database: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
