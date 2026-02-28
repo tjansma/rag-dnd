@@ -29,6 +29,11 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **Server:** FastAPI backend handles concurrent requests.
   - **Clients:** `rag-cli` (Admin), `rag-mcp` (IDE), Gemini Hooks (Context).
   - **Ingestion:** Markdown support with hash-based update detection.
+  - **Session Management:** Context-managed database sessions with singleton engine,
+    `_store_impl`/`_delete_impl` helpers for transactional integrity, and
+    `expire_on_commit=False` for safe detached object access.
+  - **Error Handling:** Domain exceptions (`DocumentExistsError`, `DocumentNotFoundError`)
+    throughout server routes and manager layer.
 
 - **In Progress / Planned:**
   - **Multi-Campaign Architecture:** Redesigning to support multiple independent campaigns stored in user profile (`~/.rag_dnd`).

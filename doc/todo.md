@@ -1,38 +1,5 @@
 # TODO
 
-## v0.2: Automation & Workflow (Current Focus)
-
-- [x] **Refactor Project Structure**
-  - [x] Create `hooks/` package and move `rag-hook.py` to `hooks/context.py` (and `query_hook.py`).
-  - [x] Update `pyproject.toml` with `[project.scripts]` entry points.
-- [x] **Implement Summarization Pipeline** (Client-side via Gemini CLI)
-  - [x] **Transcript Extraction**: Retrieve full session history from SQLite.
-  - [x] **Summarization**: Use Gemini CLI to generate high-level summaries of sessions.
-  - [x] **Ingestion**: Store summaries in logbook (append).
-  - [x] **CLI**: Add `llm summarize <session_id>` command.
-- [ ] **Implement Auto-Transcription Hook (`rag-logger`)**
-  - [ ] **Research**: Create dummy logger to inspect `AfterAgent` JSON payload.
-  - [ ] **Develop `hooks/logger.py`**:
-    - [ ] Read JSON from stdin.
-    - [ ] Extract user `prompt` and AI `response` (filtering out thoughts/tools).
-    - [ ] Append to `data/session_transcript.txt` with timestamp.
-  - [ ] **Configuration**: Update `settings.json` to trigger on `AfterAgent`.
-
-## v0.3: Multi-Campaign Architecture (Next Implementation)
-
-- [ ] **Design Status**
-  - [x] Analyze project and requirements.
-  - [x] Create design document: `doc/campaign_structure_design.md`.
-- [ ] **Core Refactor**
-  - [ ] **Data Separation**: Move user data to `~/.rag_dnd/campaigns/`.
-  - [ ] **Configuration**: Update `config.py` to support dynamic campaign loading.
-- [ ] **Server Logic**
-  - [ ] Implement `Campaign` class and `yaml` loader.
-  - [ ] Implement `PromptEngine` to render system prompts server-side (injecting character sheets).
-  - [ ] Add `GET /campaigns/{id}/context` API endpoint.
-- [ ] **Client Updates**
-  - [ ] Refactor hooks/CLI to fetch context via API (remove local Jinja2).
-
 ## v0.1: Core RAG & Clients (Completed)
 
 ### Core RAG Logic
@@ -62,6 +29,63 @@
   - [x] **MCP Server**: Becomes a thin client that calls the REST API (`rag-mcp-server.py`).
   - [x] **Gemini CLI Hook**: A script that sends a generic `POST /query` to the running server (`rag-hook.py`).
   - [x] **CLI Admin Tool**: A `typer`/`click` app that sends commands to the REST API (`rag-cli.py`).
+
+## v0.2: Automation & Workflow (Completed)
+
+- [x] **Refactor Project Structure**
+  - [x] Create `hooks/` package and move `rag-hook.py` to `hooks/context.py` (and `query_hook.py`).
+  - [x] Update `pyproject.toml` with `[project.scripts]` entry points.
+- [x] **Implement Summarization Pipeline** (Client-side via Gemini CLI)
+  - [x] **Transcript Extraction**: Retrieve full session history from SQLite.
+  - [x] **Summarization**: Use Gemini CLI to generate high-level summaries of sessions.
+  - [x] **Ingestion**: Store summaries in logbook (append).
+  - [x] **CLI**: Add `llm summarize <session_id>` command.
+- [x] **Implement Auto-Transcription Hook (`rag-logger`)**
+  - [x] **Research**: Create dummy logger to inspect `AfterAgent` JSON payload.
+  - [x] **Develop `hooks/log_hook.py`**:
+    - [x] Read JSON from stdin.
+    - [x] Extract user `prompt` and AI `response`.
+    - [x] Store via `transcribe_turn()` to SQLite.
+  - [x] **Configuration**: Entry point `rag-hook-logger` in `pyproject.toml`.
+
+## v0.2.1: Code Quality & Session Management (Completed)
+
+- [x] **Database Session Management Refactor**
+  - [x] Singleton engine in `database.py` (was: new engine per call).
+  - [x] `@contextmanager get_session()` met `finally: close()`.
+  - [x] `expire_on_commit=False` voor veilig gebruik na expunge.
+  - [x] `_store_impl`/`_delete_impl` internal helpers met session parameter.
+  - [x] `update_document` deelt één session over delete+store cyclus.
+- [x] **Error Handling**
+  - [x] Domain exceptions (`DocumentExistsError`, `DocumentNotFoundError`).
+  - [x] Alle bare `except:` vervangen door specifieke exception types.
+  - [x] `routes_v2.py`: `DatabaseError` → domain exceptions via `rag.*`.
+- [x] **Code Quality Fixes**
+  - [x] Mutable default arguments gefixed (`Config.load()` → `None` + body check).
+  - [x] `_env_override()` helper voor correcte boolean parsing.
+  - [x] `_is_writable()`: bare `except:` → `except OSError:`.
+  - [x] `limit` parameter doorgegeven in `routes.py`.
+  - [x] Unclosed file handles → `with open()`.
+  - [x] Import shadowing in `chunker.py` opgelost.
+  - [x] Dead imports/code verwijderd (`query_hook.py`).
+  - [x] Hardcoded debug pad verwijderd.
+  - [x] `__all__` export list in `rag/__init__.py`.
+  - [x] `CampaignMetadata.load_by_*`: `expunge_all()` voor detached objecten.
+
+## v0.3: Multi-Campaign Architecture (Next Implementation)
+
+- [ ] **Design Status**
+  - [x] Analyze project and requirements.
+  - [x] Create design document: `doc/campaign_structure_design.md`.
+- [ ] **Core Refactor**
+  - [ ] **Data Separation**: Move user data to `~/.rag_dnd/campaigns/`.
+  - [ ] **Configuration**: Update `config.py` to support dynamic campaign loading.
+- [ ] **Server Logic**
+  - [ ] Implement `Campaign` class and `yaml` loader.
+  - [ ] Implement `PromptEngine` to render system prompts server-side (injecting character sheets).
+  - [ ] Add `GET /campaigns/{id}/context` API endpoint.
+- [ ] **Client Updates**
+  - [ ] Refactor hooks/CLI to fetch context via API (remove local Jinja2).
 
 ## v1.0: Enterprise Readiness (Roadmap)
 
@@ -139,6 +163,8 @@
 
 - [ ] **Agent Modularization**: Research Pub/Sub architecture.
 - [ ] **Multi-Agent Simulation**: Independent agents subscribing to the transcript stream.
-- [ ] **Technical Debt: Request-Scoped Database Sessions**:
-  - Momenteel wordt `get_session()` lokaal in helper functies (zoals in `manager.py`) aangeroepen, wat leidt tot instabiele transacties per onderdeel en een 'Detached Instance' workaround.
-  - _Oplossing_: FastAPI Dependency Injection (`Depends(get_db)`) gebruiken in routers om 1 `Session` te maken per HTTP Request en deze door the geven aan alle `rag` module functies en actieve objecten.
+
+## Technical Debt (Remaining)
+
+- [ ] **`content_database` HACK in `config.py`**: Intermediate key met `del` — fragiel bij refactoring. Fix bij v0.3.
+- [ ] **`Collection.campaign_id`**: Non-nullable FK zonder campaign context — fix bij v0.3 multi-campaign.
