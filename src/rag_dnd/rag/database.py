@@ -8,6 +8,8 @@ from ..config import Config
 
 logger = logging.getLogger(__name__)
 
+_engine = None
+
 def _get_engine():
     """
     Get the engine.
@@ -15,11 +17,18 @@ def _get_engine():
     Returns:
         Engine: The engine.
     """
-    config = Config.load()
+    global _engine
+    
+    if _engine is None:
+        config = Config.load()
+        # INFO potential risk of logging sensitive information (password in URL)
+        logger.debug(f"Creating engine for database: {config.content_database_url}")
+        _engine = create_engine(url=config.content_database_url)
 
     # INFO potential risk of logging sensitive information (password in URL)
-    logger.debug(f"Connecting to database: {config.content_database_url}")
-    return create_engine(url=config.content_database_url)
+    logger.debug(f"Using database: {_engine}")
+
+    return _engine
 
 
 def init_db():

@@ -4,7 +4,6 @@ Manager for coordinating the storage of documents, chunks, and sentences.
 import os
 from hashlib import sha256
 import logging
-from typing import Optional
 
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session, joinedload
@@ -47,7 +46,8 @@ def ensure_collection(session: Session, collection_name: str) -> Collection:
     return collection
 
 
-def store_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:
+def store_document(filename: str, custom_filename: str | None = None, 
+                   config: Config | None = None) -> None:
     """
     Store a document in the database.
     
@@ -61,6 +61,9 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
         DocumentExistsError: If the document already exists in the database.
         DatabaseError: If any other database error occurs.
     """
+    if config is None:
+        config = Config.load()
+
     logger.info(f"Storing document: {filename}")
     # Check if the source file exists
     if not os.path.exists(filename):
@@ -131,7 +134,9 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
     session.close()
     logger.info(f"Stored document: {filename} with {len(chunks)} chunks.")
 
-def query(query: str, limit: int = 5, config: Config=Config.load()) -> list[QueryResult]:
+def query(query: str,
+          limit: int = 5,
+          config: Config | None = None) -> list[QueryResult]:
     """
     Query the vector store.
     
@@ -143,6 +148,9 @@ def query(query: str, limit: int = 5, config: Config=Config.load()) -> list[Quer
     Returns:
         list[QueryResult]: The relevant chunks.
     """
+    if config is None:
+        config = Config.load()
+
     logger.info(f"Querying vector store for: {query}")
     # 1. Embed the query
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
@@ -182,7 +190,9 @@ def query(query: str, limit: int = 5, config: Config=Config.load()) -> list[Quer
         )
     return results
 
-def delete_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:
+def delete_document(filename: str,
+                    custom_filename: str | None = None,
+                    config: Config | None = None) -> None:
     """
     Delete a document from the database.
     
@@ -194,6 +204,9 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
     Raises:
         DocumentNotFoundError: If the document does not exist in the database.
     """
+    if config is None:
+        config = Config.load()
+
     logger.info(f"Deleting document: {custom_filename}")
     # If no custom filename is provided, use the filename from the source file
     if custom_filename is None:
@@ -234,7 +247,9 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
     vector_store.rebuild_bm25_index()
 
 
-def update_document(filename: str, custom_filename: str | None = None, config: Config=Config.load()) -> None:
+def update_document(filename: str,
+                    custom_filename: str | None = None,
+                    config: Config | None = None) -> None:
     """
     Update a document in the database.
     
@@ -247,6 +262,9 @@ def update_document(filename: str, custom_filename: str | None = None, config: C
         FileNotFoundError: If the source file does not exist.
         DocumentNotFoundError: If the document does not exist in the database.
     """
+    if config is None:
+        config = Config.load()
+
     logger.info(f"Updating document: {filename}")
     # Check if source file exists
     if not os.path.exists(filename):
@@ -289,7 +307,8 @@ def update_document(filename: str, custom_filename: str | None = None, config: C
 
     logger.info(f"Updated document: {filename}")
 
-def prompt_llm(prompt: list[dict], config: Config=Config.load()) -> str:
+def prompt_llm(prompt: list[dict],
+                config: Config | None = None) -> str:
     """
     Prompt the LLM.
     
@@ -300,6 +319,9 @@ def prompt_llm(prompt: list[dict], config: Config=Config.load()) -> str:
     Returns:
         str: The response from the LLM.
     """
+    if config is None:
+        config = Config.load()
+
     logger.debug(f"Prompting LLM with: {prompt}")
     # Get the LLM instance for the query expansion model
     llm = get_llm(config.query_expansion_model, config.query_expansion_device)
@@ -310,7 +332,7 @@ def prompt_llm(prompt: list[dict], config: Config=Config.load()) -> str:
 
 def expand_query(query_to_expand: str,
                  extra_context: str,
-                 config: Optional[Config]=None) -> str:
+                 config: Config | None = None) -> str:
     """
     Expand a query using the LLM.
     
