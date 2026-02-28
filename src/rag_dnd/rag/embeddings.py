@@ -34,55 +34,55 @@ class Embedding:
             model_name = config.embeddings_model
         logger.debug(f"Initializing embeddings with model: {model_name}")
 
-        self.embedding_provider = config.embeddings_provider
-        self.embedding_model = model_name
+        self.embeddings_provider = config.embeddings_provider
+        self.embeddings_model = model_name
         
         # Set device and validate availability
-        if config.embedding_device == "cuda":
+        if config.embeddings_device == "cuda":
             logger.debug("Requested GPU for embeddings")
             if torch.cuda.is_available():
                 logger.debug("GPU available for embeddings")
-                self.embedding_device = "cuda"
+                self.embeddings_device = "cuda"
             else:
                 logger.debug("GPU not available for embeddings, using CPU")
-                self.embedding_device = "cpu"
+                self.embeddings_device = "cpu"
         else:
             logger.debug("Requested CPU for embeddings")
-            self.embedding_device = "cpu"
-        logger.info(f"Using device: {self.embedding_device}")
+            self.embeddings_device = "cpu"
+        logger.info(f"Using device: {self.embeddings_device}")
         
         model_kwargs: dict[str, Any] = {}
         encode_kwargs: dict[str, Any] = {}
         self.passage_prefix = ""
         self.query_prefix = ""
-        if "e5" in self.embedding_model.lower():
+        if "e5" in self.embeddings_model.lower():
             self.passage_prefix = "passage: "
             self.query_prefix = "query: "
-            model_kwargs["device"] = self.embedding_device
+            model_kwargs["device"] = self.embeddings_device
             encode_kwargs["normalize_embeddings"] = True
-        elif "jina" in self.embedding_model.lower():
-            model_kwargs["device"] = self.embedding_device
+        elif "jina" in self.embeddings_model.lower():
+            model_kwargs["device"] = self.embeddings_device
             model_kwargs["trust_remote_code"] = True
             encode_kwargs["normalize_embeddings"] = True
         else:
-            logger.error(f"Unknown embedding model: {self.embedding_model}")
-            raise ValueError(f"Unknown embedding model: {self.embedding_model}")
-        logger.info(f"Using model: {self.embedding_model}, {model_kwargs=}, {encode_kwargs=}")
+            logger.error(f"Unknown embedding model: {self.embeddings_model}")
+            raise ValueError(f"Unknown embedding model: {self.embeddings_model}")
+        logger.info(f"Using model: {self.embeddings_model}, {model_kwargs=}, {encode_kwargs=}")
 
-        if self.embedding_provider == "HuggingFace":
+        if self.embeddings_provider == "HuggingFace":
             try:
                 self.embedding = HuggingFaceEmbeddings(
-                    model_name=self.embedding_model,
+                    model_name=self.embeddings_model,
                     model_kwargs=model_kwargs,
                     encode_kwargs=encode_kwargs)
-                logger.info(f"Initialized embeddings with model: {self.embedding_model}")
+                logger.info(f"Initialized embeddings with model: {self.embeddings_model}")
             except Exception as e:
                 logger.error(f"Failed to initialize embeddings: {e}")
                 raise
         else:
-            logger.error(f"Unknown embedding provider: {self.embedding_provider}")
+            logger.error(f"Unknown embedding provider: {self.embeddings_provider}")
             raise ValueError(
-                f"Unknown embedding provider: {self.embedding_provider}")
+                f"Unknown embedding provider: {self.embeddings_provider}")
 
     def embed(self, chunk: Chunk) -> None:
         """

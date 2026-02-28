@@ -15,19 +15,18 @@ dotenv.load_dotenv()
 # ==================================================================
 _DEFAULTS = {
     "data_dir": None,
-#    "session_log": "session_log.txt",
-    "transcript_database": "db/relational/transcript.db",
+    "transcript_database": Path("db/relational/transcript.db"),
     "api_ip": "127.0.0.1",
     "api_port": 8001,
     "embeddings_model": "intfloat/multilingual-e5-small",
     "embeddings_provider": "HuggingFace",
-    "embedding_device": "cpu",
-    "vector_database": "db/vector",
+    "embeddings_device": "cpu",
+    "vector_database": Path("db/vector"),
     "relevance_threshold": 0.5,
     "content_database": "db/relational/content.db",
     "collection_name": "rag_dnd",
     "log_level": "WARNING",
-    "log_file": "log/app.log",
+    "log_file": Path("log/app.log"),
     "upload_dir": Path("uploads"),
     "query_expansion_enabled": True,
     "query_expansion_model": "",
@@ -36,6 +35,33 @@ _DEFAULTS = {
     "query_expansion_system_prompt": "",
     "api_auto_reload": False,
 }
+
+def _env_override(config: dict, key: str, env_var: str, cast=str) -> bool:
+    """
+    Override a configuration value with an environment variable.
+
+    Args:
+        config (dict): The configuration dictionary.
+        key (str): The key to override.
+        env_var (str): The environment variable to use.
+        cast (callable): The type to cast the value to.
+
+    Returns:
+        bool: True if the value was overridden, False otherwise.
+    """
+    val = os.getenv(env_var)
+    if val is None:
+        return False
+    
+    # Handle boolean overrides to convert "true", "1", "yes" to True
+    # and everything else to False
+    if cast == bool:
+        config[key] = val.lower() in ("true", "1", "yes")
+        return True
+
+    # Handle all other types
+    config[key] = cast(val)
+    return True
 
 def _is_writable(path: Path) -> bool:
     """
@@ -56,7 +82,7 @@ def _is_writable(path: Path) -> bool:
         with tempfile.NamedTemporaryFile(dir=target) as f:
             f.write(b"test")
         return True
-    except:
+    except OSError:
         return False
 
 def _get_default_data_dir() -> Path:
@@ -100,19 +126,18 @@ def _get_default_data_dir() -> Path:
 class Config:
     """Configuration for the server application."""
     data_dir: Path
-#    session_log: str
-    transcript_database: str
+    transcript_database: Path
     api_ip: str
     api_port: int
     embeddings_model: str
     embeddings_provider: str
-    embedding_device: str
-    vector_database: str
+    embeddings_device: str
+    vector_database: Path
     relevance_threshold: float
     content_database_url: str
     collection_name: str
     log_level: str
-    log_file: str
+    log_file: Path
     upload_dir: Path
     query_expansion_enabled: bool
     query_expansion_model: str
@@ -146,66 +171,65 @@ class Config:
         # All other data storage locations are relative to the campaign
         # directories, and will be created for each campaign.
         # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_DATA_DIR"):
-            actual_config["data_dir"] = Path(str(os.getenv("RAG_DND_DATA_DIR"))
-                                            ).resolve(strict=False)
-        else:
+        if not _env_override(actual_config,
+                             "data_dir", "RAG_DND_DATA_DIR",
+                             Path):
             actual_config["data_dir"] = _get_default_data_dir()
         
         # ------------------------------------------------------------------
         # Per-campaign data storage locations
         # ------------------------------------------------------------------
-        # if os.getenv("RAG_DND_SESSION_LOG"):
-        #     actual_config["session_log"] = os.getenv("RAG_DND_SESSION_LOG")
-        
-        if os.getenv("RAG_DND_TRANSCRIPT_DB"):
-            actual_config["transcript_database"] = os.getenv("RAG_DND_TRANSCRIPT_DB")
-
-        if os.getenv("RAG_DND_VECTORDB"):
-            actual_config["vector_database"] = os.getenv("RAG_DND_VECTORDB")
-
-        if os.getenv("RAG_DND_LOG_FILE"):
-            actual_config["log_file"] = os.getenv("RAG_DND_LOG_FILE")
-
-        if os.getenv("RAG_DND_UPLOAD_DIR"):
-            actual_config["upload_dir"] = os.getenv("RAG_DND_UPLOAD_DIR")
+        _env_override(actual_config,
+                      "transcript_database", "RAG_DND_TRANSCRIPT_DB", Path)
+        _env_override(actual_config,
+                      "vector_database", "RAG_DND_VECTORDB", Path)
+        _env_override(actual_config,
+                      "log_file", "RAG_DND_LOG_FILE", Path)
+        _env_override(actual_config,
+                      "upload_dir", "RAG_DND_UPLOAD_DIR", Path)
 
         # ------------------------------------------------------------------
         # API
         # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_API_IP"):
-            actual_config["api_ip"] = os.getenv("RAG_DND_API_IP")
-        if os.getenv("RAG_DND_API_PORT"):
-            actual_config["api_port"] = int(str(os.getenv("RAG_DND_API_PORT")))
-        if os.getenv("RAG_DND_API_AUTO_RELOAD"):
-            actual_config["api_auto_reload"] = bool(str(os.getenv("RAG_DND_API_AUTO_RELOAD")))
+        _env_override(actual_config, "api_ip", "RAG_DND_API_IP")
+        _env_override(actual_config,
+                      "api_port", "RAG_DND_API_PORT",
+                      int)
         
         # ------------------------------------------------------------------
         # Embeddings
         # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_EMBEDDINGS_MODEL"):
-            actual_config["embeddings_model"] = os.getenv("RAG_DND_EMBEDDINGS_MODEL")
-        if os.getenv("RAG_DND_EMBEDDINGS_PROVIDER"):
-            actual_config["embeddings_provider"] = os.getenv("RAG_DND_EMBEDDINGS_PROVIDER")
-        if os.getenv("RAG_DND_EMBEDDINGS_DEVICE"):
-            actual_config["embedding_device"] = os.getenv("RAG_DND_EMBEDDINGS_DEVICE")
+        _env_override(actual_config,
+                      "embeddings_model", "RAG_DND_EMBEDDINGS_MODEL")
+        _env_override(actual_config,
+                      "embeddings_provider", "RAG_DND_EMBEDDINGS_PROVIDER")
+        _env_override(actual_config,
+                      "embeddings_device", "RAG_DND_EMBEDDINGS_DEVICE")
         
         # ------------------------------------------------------------------
         # Vector database and search parameters
         # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_RELEVANCE_THRESHOLD"):
-            actual_config["relevance_threshold"] = float(
-                str(os.getenv("RAG_DND_RELEVANCE_THRESHOLD")))
-        if os.getenv("RAG_DND_QUERY_EXPANSION_ENABLED"):
-            expansion_enabled = str(os.getenv("RAG_DND_QUERY_EXPANSION_ENABLED")).upper()
-            actual_config["query_expansion_enabled"] = \
-                expansion_enabled == "TRUE" or expansion_enabled == "1"
+        _env_override(actual_config,
+                      "relevance_threshold", "RAG_DND_RELEVANCE_THRESHOLD",
+                      float)
+        _env_override(actual_config,
+                      "query_expansion_enabled", 
+                      "RAG_DND_QUERY_EXPANSION_ENABLED",
+                      bool)
+        _env_override(actual_config,
+                      "query_expansion_model", "RAG_DND_QUERY_EXPANSION_MODEL")
+        _env_override(actual_config,
+                      "query_expansion_provider", "RAG_DND_QUERY_EXPANSION_PROVIDER")
+        _env_override(actual_config,
+                      "query_expansion_device", "RAG_DND_QUERY_EXPANSION_DEVICE")
+        _env_override(actual_config,
+                      "query_expansion_system_prompt", "RAG_DND_QUERY_EXPANSION_SYSTEM_PROMPT")
 
         # ------------------------------------------------------------------
         # Content database
         # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_CONTENTDB"):
-            actual_config["content_database"] = os.getenv("RAG_DND_CONTENTDB")
+        _env_override(actual_config,
+                      "content_database", "RAG_DND_CONTENTDB")
 
         # !!!!! HACK!!!! Should be fixed later to use a proper config value
         # Build the database URL from the path
@@ -222,6 +246,8 @@ class Config:
         del actual_config["content_database"]
         # !!!!! HACK!!!! Should be fixed later to use a proper config value
         
+        # Not using _env_override because it's not a simple value
+        # It depends on the embeddings_model and the collection prefix
         if os.getenv("RAG_DND_COLLECTION_PREFIX"):
             model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
             actual_config["collection_name"] = \
@@ -234,25 +260,12 @@ class Config:
         # ------------------------------------------------------------------
         # Logging and debug settings
         # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_LOG_LEVEL"):
-            actual_config["log_level"] = os.getenv("RAG_DND_LOG_LEVEL")
-        if os.getenv("RAG_DND_API_AUTO_RELOAD"):
-            api_auto_reload = str(os.getenv("RAG_DND_API_AUTO_RELOAD")).upper()
-            actual_config["api_auto_reload"] = \
-                api_auto_reload == "TRUE" or api_auto_reload == "1"
+        _env_override(actual_config,
+                      "log_level", "RAG_DND_LOG_LEVEL")
+        _env_override(actual_config,
+                      "api_auto_reload", "RAG_DND_API_AUTO_RELOAD",
+                      bool)
 
-        # ------------------------------------------------------------------
-        # Query expansion
-        # ------------------------------------------------------------------
-        if os.getenv("RAG_DND_QUERY_EXPANSION_MODEL"):
-            actual_config["query_expansion_model"] = os.getenv("RAG_DND_QUERY_EXPANSION_MODEL")
-        if os.getenv("RAG_DND_QUERY_EXPANSION_PROVIDER"):
-            actual_config["query_expansion_provider"] = os.getenv("RAG_DND_QUERY_EXPANSION_PROVIDER")
-        if os.getenv("RAG_DND_QUERY_EXPANSION_DEVICE"):
-            actual_config["query_expansion_device"] = os.getenv("RAG_DND_QUERY_EXPANSION_DEVICE")
-        if os.getenv("RAG_DND_QUERY_EXPANSION_SYSTEM_PROMPT"):
-            actual_config["query_expansion_system_prompt"] = os.getenv("RAG_DND_QUERY_EXPANSION_SYSTEM_PROMPT")
-        
         # ------------------------------------------------------------------
         # Overrides from arguments
         # ------------------------------------------------------------------
