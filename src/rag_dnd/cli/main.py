@@ -206,7 +206,7 @@ def session_export(id: int, output_file: Optional[str]=None):
 
     dest_file.write(session_to_markdown(id))
 
-    if not output_file:
+    if output_file:
         dest_file.close()
 
 @session_app.command("summarize")

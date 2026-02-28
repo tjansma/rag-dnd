@@ -13,9 +13,10 @@ from ..config import Config
 
 from .database import get_session, init_db
 from .embeddings import get_embedding_instance
+from .exceptions import DocumentExistsError, DocumentNotFoundError
 from .llm import get_llm
 from .models import Document, Collection, Chunk, QueryResult
-from .store import VectorStore, get_vector_store
+from .store import get_vector_store
 from .chunker import Chunker
 
 logger = logging.getLogger(__name__)
@@ -57,8 +58,8 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
 
     Raises:
         FileNotFoundError: If the source file does not exist.
-        DatabaseError: If the document already exists in the database or if any
-                       other database error occurs.
+        DocumentExistsError: If the document already exists in the database.
+        DatabaseError: If any other database error occurs.
     """
     logger.info(f"Storing document: {filename}")
     # Check if the source file exists
@@ -104,7 +105,7 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
     except DatabaseError as e:
         logger.error(f"Error adding '{filename}' to database: {e}")
         session.rollback()
-        raise
+        raise DocumentExistsError(f"Document '{filename}' already exists.")
 
     # Connect to embeddings model and vector store
     logger.debug(f"Connecting to embeddings model: {config.embeddings_model}")
@@ -130,13 +131,14 @@ def store_document(filename: str, custom_filename: str | None = None, config: Co
     session.close()
     logger.info(f"Stored document: {filename} with {len(chunks)} chunks.")
 
-def query(query: str, config: Config=Config.load()) -> list[QueryResult]:
+def query(query: str, limit: int = 5, config: Config=Config.load()) -> list[QueryResult]:
     """
     Query the vector store.
     
     Args:
         query (str): The query to perform.
-        config (Config): The configuration to use.
+        limit (int): The number of chunks to return. Defaults to 5.
+        config (Config): The configuration to use. Defaults to Config.load().
         
     Returns:
         list[QueryResult]: The relevant chunks.
@@ -152,7 +154,7 @@ def query(query: str, config: Config=Config.load()) -> list[QueryResult]:
     logger.debug(f"Connecting to vector store: {config.vector_database}")
     vector_store = get_vector_store(config)
     logger.debug(f"Querying vector store for relevant chunks.")
-    relevant_chunk_ids = vector_store.hybrid_search(query, query_embedding)
+    relevant_chunk_ids = vector_store.hybrid_search(query, query_embedding, limit)
 
     # 3. Retrieve the relevant chunks
     # We query the SQLite DB to get the full text content for the IDs returned by the Vector Store
@@ -188,6 +190,9 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
         filename (str): The path to the document.
         custom_filename (str | None): The custom filename to use.
         config (Config): The configuration to use.
+
+    Raises:
+        DocumentNotFoundError: If the document does not exist in the database.
     """
     logger.info(f"Deleting document: {custom_filename}")
     # If no custom filename is provided, use the filename from the source file
@@ -200,8 +205,8 @@ def delete_document(filename: str, custom_filename: str | None = None, config: C
     # Query the document by custom_filename
     document = session.query(Document).filter_by(custom_filename=custom_filename).first()
     if document is None:
-        logger.error(f"Document {custom_filename} not found.")
-        raise FileNotFoundError(f"Document {custom_filename} not found.")
+        logger.error(f"Delete failed: Document {custom_filename} not found in DB.")
+        raise DocumentNotFoundError(f"Delete failed: Document {custom_filename} not found in DB.")
     
     # Connect to vector store
     vector_store = get_vector_store(config)
@@ -237,12 +242,16 @@ def update_document(filename: str, custom_filename: str | None = None, config: C
         filename (str): The path to the document.
         custom_filename (str | None): The custom filename to use.
         config (Config): The configuration to use.
+
+    Raises:
+        FileNotFoundError: If the source file does not exist.
+        DocumentNotFoundError: If the document does not exist in the database.
     """
     logger.info(f"Updating document: {filename}")
     # Check if source file exists
     if not os.path.exists(filename):
-        logger.error(f"File {filename} not found.")
-        raise FileNotFoundError(f"File {filename} not found.")
+        logger.error(f"Update failed: File {filename} not found on server FS.")
+        raise FileNotFoundError(f"Update failed: File {filename} not found on server FS.")
     
     # If no custom filename is provided, use the filename from the source file
     if custom_filename is None:
@@ -258,7 +267,7 @@ def update_document(filename: str, custom_filename: str | None = None, config: C
     document = session.query(Document).filter_by(custom_filename=custom_filename).first()
     if document is None:
         logger.error(f"Document {filename} not found in database.")
-        raise FileNotFoundError(f"Document {filename} not found in database.")
+        raise DocumentNotFoundError(f"Document {filename} not found in database.")
     
     # Check if the file has changed
     if document.file_hash == file_hash:
