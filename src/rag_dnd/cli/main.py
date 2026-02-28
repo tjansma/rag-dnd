@@ -211,7 +211,7 @@ def session_export(id: int, output_file: Optional[str]=None):
 
 @session_app.command("summarize")
 def session_summarize(id: int, 
-                      prompt_file: str = ClientConfig.load().summary_prompt_file, 
+                      prompt_file: str | None = None, 
                       output: Optional[str] =  None, 
                       append: bool = False):
     """
@@ -227,6 +227,8 @@ def session_summarize(id: int,
         None
     """
     try:
+        if prompt_file is None:
+            prompt_file = ClientConfig.load().summary_prompt_file
         summary = transcript_summarize(id, prompt_file, output, append)
         console.print(summary)
     except Exception as e:

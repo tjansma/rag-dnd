@@ -360,7 +360,8 @@ def expand_query(query_to_expand: str,
     if config is None:
         config = Config.load()
     # Read the system prompt for the query expansion model
-    system_prompt = open(config.query_expansion_system_prompt).read()
+    with open(config.query_expansion_system_prompt, "r") as f:
+        system_prompt = f.read()
     # Create the user prompt and include the extra context and query to expand
     user_prompt = f"""<context>
     {extra_context}

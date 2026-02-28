@@ -45,7 +45,7 @@ class Chunker:
         Chunks the text based on the strategy.
         
         Args:
-            text (str): The text to chunk.
+            document (Document): The document to chunk.
         
         Returns:
             List[Chunk]: A list of chunks.
