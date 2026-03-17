@@ -355,7 +355,7 @@ def update_document(collection: Collection,
     logger.info(f"Updated document: {custom_filename}")
 
 def prompt_llm(prompt: list[dict],
-                config: Config | None = None) -> str:
+               config: Config | None = None) -> str:
     """
     Prompt the LLM.
     

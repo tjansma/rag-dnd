@@ -117,9 +117,33 @@ async def query_rag(request: QueryRequest) -> list[QueryResponse]:
 
 @router.post("/llm_generate")
 async def generate_llm(request: list[LLMMessage]) -> str:
+    """
+    Generate text using the LLM.
+    
+    Args:
+        request (list[LLMMessage]): The messages to send to the LLM.
+
+    Returns:
+        str: The generated text.
+    """
+    return SuccessResult(message="This route is removed. Use the v2 API.", 
+                         status_code=410)
+
     messages = [ { "role": message.role, "content": message.content } for message in request ]
     return rag.prompt_llm(messages)
 
 @router.post("/expand_query")
 async def expand_query(request: ExpandQueryRequest) -> str:
+    """
+    Expand a query using the LLM.
+    
+    Args:
+        request (ExpandQueryRequest): The query to expand.
+
+    Returns:
+        str: The expanded query.
+    """
+    return SuccessResult(message="This route is removed. Use the v2 API.", 
+                         status_code=410)
+
     return rag.expand_query(request.query, request.extra_context)

@@ -65,17 +65,22 @@ class Campaign:
         return cls(metadata)
     
     # --- Methods ---
-    def query_rag(self, prompt: str, collection_name: str | None = None) -> list[QueryResult]:
+    def query_rag(self, prompt: str, collection_name: str | None = None, max_results: int = 5) -> list[QueryResult]:
         """Query the RAG system.
         
         Args:
             prompt (str): The prompt to query.
-                collection_name (str | None): The collection name to use.
+            collection_name (str | None): The collection name to use.
                                           If None, the default campaign 
                                           collection will be used.
+            max_results (int): The maximum number of results to return.
+                               Defaults to 5.
             
         Returns:
             list[QueryResult]: The query results.
+
+        Raises:
+            ValueError: If the collection name is not found or does not belong to the campaign.
         """
         if collection_name is None:
             collection_name = self.metadata.get_default_collection_name()
@@ -86,7 +91,7 @@ class Campaign:
                 logger.error(f"Campaign.query_rag: Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
                 raise ValueError(f"Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
         
-            return manager.query(prompt, collection, session)
+            return manager.query(prompt, collection, session, limit=max_results)
 
     def store_document(self,
                        filename: Path,
@@ -127,3 +132,32 @@ class Campaign:
                 manager.store_document(collection, filename, session, custom_filename=custom_filename)
             except DocumentExistsError:
                 manager.update_document(collection, filename, session, custom_filename=custom_filename)
+
+    def delete_document(self, filename: str, collection_name: str | None = None) -> None:
+        """
+        Delete a document from the database.
+        
+        Args:
+            filename (str): The name of the document to delete.
+            collection_name (str | None): The collection name to use.
+                                          If None, the default campaign 
+                                          collection will be used.
+            
+        Returns:
+            None
+
+        Raises:
+            ValueError: If the collection name is not found or does not belong to the campaign.
+            DocumentNotFoundError: If the document is not found.
+        """
+        if collection_name is None:
+            collection = self.default_collection
+        else:
+            with get_session() as session:
+                collection = manager.get_collection(session, collection_name)
+                if collection.campaign_id != self.metadata.id:
+                    logger.error(f"Campaign.delete_document: Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
+                    raise ValueError(f"Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
+
+        with get_session() as session:
+            manager.delete_document(collection, filename, session)

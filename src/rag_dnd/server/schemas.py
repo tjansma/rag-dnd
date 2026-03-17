@@ -8,7 +8,8 @@ class StoreRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     query: str
-    limit: int = 5
+    max_results: int = 5
+    collection_name: str | None = None
 
 class UpdateRequest(BaseModel):
     file_path: str
