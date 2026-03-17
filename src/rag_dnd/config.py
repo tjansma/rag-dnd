@@ -1,5 +1,5 @@
 """Configuration for the server-side of the RAG D&D application."""
-from typing import Self, Any
+from typing import Optional, Self, Any
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -7,6 +7,11 @@ import sys
 import tempfile
 
 import dotenv
+
+# ------------------------------------------------------------------
+# Global configuration instance
+# ------------------------------------------------------------------
+_config_instance: Optional["Config"] = None
 
 dotenv.load_dotenv()
 
@@ -24,7 +29,7 @@ _DEFAULTS = {
     "vector_database": Path("db/vector"),
     "relevance_threshold": 0.5,
     "content_database": "db/relational/content.db",
-    "collection_name": "rag_dnd",
+#    "collection_name": "rag_dnd",
     "log_level": "WARNING",
     "log_file": Path("log/app.log"),
     "upload_dir": Path("uploads"),
@@ -135,7 +140,7 @@ class Config:
     vector_database: Path
     relevance_threshold: float
     content_database_url: str
-    collection_name: str
+    # collection_name: str
     log_level: str
     log_file: Path
     upload_dir: Path
@@ -151,12 +156,29 @@ class Config:
         """
         Load configuration from defaults, config file, and environment variables.
 
+        The configuration is loaded in the following order:
+        1. Defaults
+        2. Config file
+        3. Environment variables
+        4. Overrides
+
+        BEWARE: Overrides are applied permanently to the config instance.
+        If you want to use a different configuration, you must create a new
+        config instance.
+
         Args:
-            overrides: Dictionary of overrides to apply to the configuration.
+            overrides (dict[str, Any] | None): Dictionary of overrides to apply 
+                                               to the configuration.
 
         Returns:
             Config: The configuration for the server application.
         """
+        # If we have already loaded the config and there are no overrides,
+        # return the cached config.
+        global _config_instance
+        if overrides is None and _config_instance is not None:
+            return _config_instance
+
         # ------------------------------------------------------------------
         # Start with defaults
         # ------------------------------------------------------------------
@@ -248,14 +270,14 @@ class Config:
         
         # Not using _env_override because it's not a simple value
         # It depends on the embeddings_model and the collection prefix
-        if os.getenv("RAG_DND_COLLECTION_PREFIX"):
-            model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
-            actual_config["collection_name"] = \
-                f'{os.getenv("RAG_DND_COLLECTION_PREFIX")}_{model_name_slug}'
-        else:
-            model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
-            actual_config["collection_name"] = \
-                f'rag_dnd_{model_name_slug}'
+        # if os.getenv("RAG_DND_COLLECTION_PREFIX"):
+        #     model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
+        #     actual_config["collection_name"] = \
+        #         f'{os.getenv("RAG_DND_COLLECTION_PREFIX")}_{model_name_slug}'
+        # else:
+        #     model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
+        #     actual_config["collection_name"] = \
+        #         f'rag_dnd_{model_name_slug}'
 
         # ------------------------------------------------------------------
         # Logging and debug settings
@@ -273,10 +295,33 @@ class Config:
             actual_config.update(overrides)
 
         # ------------------------------------------------------------------
-        # Return the configuration
+        # Store and return the configuration
         # ------------------------------------------------------------------
-        return cls(**actual_config)
+        _config_instance = cls(**actual_config)
+        return _config_instance
+
+    @staticmethod
+    def clear() -> None:
+        """
+        Clear the cached configuration instance.
+
+        This is useful for testing purposes, as it allows you to create a new
+        configuration instance without having to restart the application.
+
+        Returns:
+            None
+        """
+        global _config_instance
+        _config_instance = None
 
     def __repr__(self) -> str:
-        """Return a string representation of the configuration."""
+        """
+        Return a string representation of the configuration.
+
+        This is useful for debugging purposes, as it allows you to see the
+        current configuration settings.
+
+        Returns:
+            str: A string representation of the configuration.
+        """
         return f"Config(data_dir={self.data_dir}, api_ip={self.api_ip}, api_port={self.api_port}, embeddings_model={self.embeddings_model}, embeddings_provider={self.embeddings_provider}, vector_database={self.vector_database}, content_database_url={self.content_database_url}, collection_name={self.collection_name}, log_level={self.log_level}, log_file={self.log_file})"

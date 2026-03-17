@@ -27,3 +27,7 @@ class LLMMessage(BaseModel):
 class ExpandQueryRequest(BaseModel):
     query: str
     extra_context: str
+
+class SuccessResult(BaseModel):
+    message: str
+    status_code: int

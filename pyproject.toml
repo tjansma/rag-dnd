@@ -4,9 +4,9 @@ version = "0.2.0"
 description = "D&D RAG campaign history"
 readme = "README.md"
 authors = [
-    { name = "Tim Jansma", email = "i888986@fontysict.nl" }
+    { name = "Tim Jansma", email = "t.jansma@ligit.nl" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "accelerate>=1.12.0",
     "chromadb>=1.4.0",

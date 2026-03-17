@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class VectorStore:
     """Vector store for chunks (Hybrid: ChromaDB + BM25)."""
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, collection_name: str) -> None:
         """
         Initialize the vector store.
         
@@ -29,9 +29,9 @@ class VectorStore:
                                                 settings=chromadb.Settings(
                                                     anonymized_telemetry=False))
 
-        logger.debug(f"Initializing collection: {config.collection_name}")
+        logger.debug(f"Initializing collection: {collection_name}")
         self.collection = self.client.get_or_create_collection(
-            name=config.collection_name)
+            name=collection_name)
 
         # Initialize BM25 index
         self.bm25: BM25Okapi | None = None
@@ -253,29 +253,31 @@ class VectorStore:
             )
         logger.info(f"Deleted embeddings for {len(chunk_ids)} chunks.")
 
-_vector_store_instance: VectorStore | None = None
+_vector_store_instances: dict[str, VectorStore] = {}
 
-def get_vector_store(config: Config | None = None) -> VectorStore:
+def get_vector_store(collection_name: str,
+                     config: Config | None = None) -> VectorStore:
     """
     Get the vector store instance.
     
     Args:
+        collection_name (str): The collection name.
         config (Config): The configuration.
         
     Returns:
         VectorStore: The vector store instance.
     """
-    global _vector_store_instance
+    global _vector_store_instances
 
-    logger.debug(f"Getting vector store instance.")
+    logger.debug(f"Getting vector store instance for collection '{collection_name}'.")
 
     if config is None:
         config = Config.load()
 
-    if _vector_store_instance is None:
-        logger.debug(f"Creating new vector store instance.")
-        _vector_store_instance = VectorStore(config)
+    if collection_name not in _vector_store_instances:
+        logger.debug(f"Creating new vector store instance for collection '{collection_name}'.")
+        _vector_store_instances[collection_name] = VectorStore(config, collection_name)
     else:
-        logger.debug(f"Using existing vector store instance.")
+        logger.debug(f"Using existing vector store instance for collection '{collection_name}'.")
 
-    return _vector_store_instance
+    return _vector_store_instances[collection_name]

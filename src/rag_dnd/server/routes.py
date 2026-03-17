@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from .. import rag
 
 from .schemas import StoreRequest, QueryRequest, UpdateRequest, \
-    DeleteRequest, QueryResponse, LLMMessage, ExpandQueryRequest
+    DeleteRequest, QueryResponse, LLMMessage, ExpandQueryRequest, SuccessResult
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,9 @@ async def store_document(request: StoreRequest):
     Returns:
         SuccessResult: The result of the operation.
     """
+    return SuccessResult(message="This route is removed. Use the v2 API.", 
+                         status_code=410)
+
     try:
         logger.info(f"Storing document: {request.file_path}")
         rag.store_document(request.file_path)
@@ -42,6 +45,18 @@ async def store_document(request: StoreRequest):
 
 @router.put("/document")
 async def update_document(request: UpdateRequest):
+    """
+    Update a document in the vector store.
+    
+    Args:
+        request (UpdateRequest): The document to update.
+
+    Returns:
+        SuccessResult: The result of the operation.
+    """
+    return SuccessResult(message="This route is removed. Use the v2 API.", 
+                         status_code=410)
+
     try:
         logger.info(f"Updating document: {request.file_path}")
         rag.update_document(request.file_path)
@@ -54,6 +69,18 @@ async def update_document(request: UpdateRequest):
 
 @router.delete("/document")
 async def delete_document(request: DeleteRequest):
+    """
+    Delete a document from the vector store.
+    
+    Args:
+        request (DeleteRequest): The document to delete.
+
+    Returns:
+        SuccessResult: The result of the operation.
+    """
+    return SuccessResult(message="This route is removed. Use the v2 API.", 
+                         status_code=410)
+
     try:
         logger.info(f"Deleting document: {request.file_path}")
         rag.delete_document(request.file_path)
@@ -67,6 +94,18 @@ async def delete_document(request: DeleteRequest):
 
 @router.post("/rag_query")
 async def query_rag(request: QueryRequest) -> list[QueryResponse]:
+    """
+    Query the vector store.
+    
+    Args:
+        request (QueryRequest): The query to run.
+
+    Returns:
+        list[QueryResponse]: The results of the query.
+    """
+    return SuccessResult(message="This route is removed. Use the v2 API.", 
+                         status_code=410)
+
     try:
         logger.info(f"Querying RAG: {request.query}")
         results = rag.query(request.query, request.limit)

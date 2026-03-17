@@ -1,11 +1,12 @@
 """Models for the database."""
 from __future__ import annotations
-from typing import Optional, Any
+from typing import Optional, Any, Self
 from dataclasses import dataclass
 
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
+from ..config import Config
 from .database import get_session
 
 class ORMBase(orm.DeclarativeBase):
@@ -19,7 +20,7 @@ class Collection(ORMBase):
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
     name: orm.Mapped[str] = orm.mapped_column(sa.String)
-    campaign_id: orm.Mapped[int] = \
+    campaign_id: orm.Mapped[int | None] = \
         orm.mapped_column(sa.Integer, sa.ForeignKey("campaign_metadata.id"))
 
     campaign: orm.Mapped["CampaignMetadata"] = orm.relationship(
@@ -78,6 +79,12 @@ class Chunk(ORMBase):
     sentences: list["Sentence"]
 
     def __str__(self) -> str:
+        """
+        Return a string representation of the chunk.
+
+        Returns:
+            str: The text of the chunk.
+        """
         return self.text
 
 
@@ -97,25 +104,72 @@ class CampaignMetadata(ORMBase):
     short_name: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
     system: orm.Mapped[str] = orm.mapped_column(sa.String)
     language: orm.Mapped[str] = orm.mapped_column(sa.String)
-    active_summary_file: orm.Mapped[str] = orm.mapped_column(sa.String)
-    session_log_file: orm.Mapped[str] = orm.mapped_column(sa.String)
-    extensions: orm.Mapped[dict[str, Any]] = orm.mapped_column(sa.JSON)
+    active_summary_file: orm.Mapped[str | None] = orm.mapped_column(sa.String)
+    session_log_file: orm.Mapped[str | None] = orm.mapped_column(sa.String)
+    extensions: orm.Mapped[dict[str, Any] | None] = orm.mapped_column(sa.JSON)
     
     collections: orm.Mapped[list["Collection"]] = orm.relationship(
         back_populates="campaign")
 
     @classmethod
-    def load_by_id(cls, id: int) -> "CampaignMetadata":
-        """Load campaign metadata by id."""
+    def load_by_id(cls, id: int) -> Self:
+        """
+        Load campaign metadata by id.
+
+        Args:
+            id (int): The id of the campaign metadata to load.
+
+        Returns:
+            Self: The campaign metadata.
+        """
         with get_session() as session:
             metadata = session.query(cls).filter(cls.id == id).first()
             session.expunge_all()
             return metadata
 
     @classmethod
-    def load_by_short_name(cls, name: str) -> "CampaignMetadata":
-        """Load campaign metadata by name."""
+    def load_by_short_name(cls, name: str) -> Self:
+        """
+        Load campaign metadata by name.
+
+        Args:
+            name (str): The name of the campaign metadata to load.
+
+        Returns:
+            Self: The campaign metadata.
+        """
         with get_session() as session:
             metadata = session.query(cls).filter(cls.short_name == name).first()
             session.expunge_all()
             return metadata
+
+    @orm.validates("short_name")
+    def validate_short_name(self, key, value) -> str:
+        """
+        Validate the short name.
+
+        Args:
+            key (str): The key to validate.
+            value (str): The value to validate.
+
+        Returns:
+            str: The validated value.
+        """
+        if "!" in value:
+            raise ValueError("Short name cannot contain '!'")
+        return value
+
+    def get_default_collection_name(self, config: Config | None = None) -> str:
+        """
+        Get the name of the collection.
+
+        Args:
+            config (Config | None): The configuration to use. If None, the
+                                    default configuration will be used.
+
+        Returns:
+            str: The name of the collection.
+        """
+        if config is None:
+            config = Config.load()
+        return f"{self.short_name}!{config.embeddings_model}"
