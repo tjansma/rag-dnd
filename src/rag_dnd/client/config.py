@@ -14,6 +14,8 @@ _DEFAULTS = {
     "logbook_path": "data/LMoP_ToD_TimJansma_Log.md",
     "summary_prompt_file": "prompts/session_summary.txt",
     "query_expansion": True,
+    "campaign": "",
+    "collection": "",
 }
 
 @dataclass
@@ -24,6 +26,8 @@ class ClientConfig:
     logbook_path: str
     summary_prompt_file: str
     query_expansion: bool
+    campaign: str
+    collection: str
 
     @classmethod
     def load(cls, overrides: dict[str, Any] | None = None) -> Self:
@@ -66,7 +70,11 @@ class ClientConfig:
                 str(os.getenv("RAG_DND_QUERY_EXPANSION_ENABLED"))
             actual_config["query_expansion"] = \
                 query_expansion_enabled.lower() == "true" or \
-                query_expansion_enabled == "1"  
+                query_expansion_enabled == "1"
+        if os.getenv("RAG_DND_CAMPAIGN"):
+            actual_config["campaign"] = os.getenv("RAG_DND_CAMPAIGN")
+        if os.getenv("RAG_DND_COLLECTION"):
+            actual_config["collection"] = os.getenv("RAG_DND_COLLECTION")
 
         # Create the config file if it doesn't exist
         if not os.path.exists(config_file):
@@ -80,5 +88,10 @@ class ClientConfig:
         # Check runtime override
         if overrides:
             actual_config.update(overrides)
+
+        if not actual_config["campaign"]:
+            raise ValueError("No campaign configured. Set RAG_DND_CAMPAIGN "
+                             f"environment variable or add 'campaign = "
+                             f"<campaign>' to {config_file}.")
 
         return cls(**actual_config)  # type: ignore

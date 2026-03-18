@@ -5,7 +5,7 @@ from fastapi import APIRouter, UploadFile, HTTPException
 
 from .. import rag
 from .upload import temporary_upload
-from .schemas import QueryRequest, LLMMessage
+from .schemas import QueryRequest, LLMMessage, ExpandQueryRequest
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,9 @@ router_v2 = APIRouter(prefix="/v2")
 
 
 @router_v2.put("/campaigns/{campaign_short_name}/documents", status_code=200)
-def update_document(file: UploadFile, campaign_short_name: str, collection_name: str | None = None):
+def update_document(file: UploadFile,
+                    campaign_short_name: str,
+                    collection_name: str | None = None):
     """
     Store or update a document in the database.
     
@@ -148,17 +150,16 @@ def llm_generate(prompt: list[LLMMessage]) -> str:
 
 
 @router_v2.post("/llm/expand_query")
-def llm_expand_query(query: str, extra_context: str) -> str:
+def llm_expand_query(request: ExpandQueryRequest) -> str:
     """
     Expand a query using the LLM.
     
     Args:
-        query (str): The query to expand.
-        extra_context (str): The extra context to use for expansion.
+        request (ExpandQueryRequest): The request to expand the query.
     """
-    logger.debug(f"routes_v2.llm_expand_query: Entering {query=}, {extra_context=}")
+    logger.debug(f"routes_v2.llm_expand_query: Entering {request=}")
     try:
-        result = rag.manager.expand_query(query, extra_context)
+        result = rag.manager.expand_query(request.query, request.extra_context)
     except Exception as e:
         logger.error(f"routes_v2.llm_expand_query: Error expanding query: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
