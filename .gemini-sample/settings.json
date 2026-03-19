@@ -4,8 +4,8 @@
   },
   "hooks": {
     "disabled": [],
-    "enabled": true,
-    "notifications": true,
+    "enabled": [],
+    "notifications": [],
     "BeforeAgent": [
       {
         "hooks": [
