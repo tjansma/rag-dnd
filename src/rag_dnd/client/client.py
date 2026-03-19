@@ -21,6 +21,19 @@ class QueryResult:
     text: str
     source_document: str
 
+
+@dataclass
+class CampaignResponse:
+    id: int
+    full_name: str
+    short_name: str
+    roleplay_system: str
+    language: str
+    active_summary_file: str | None
+    session_log_file: str | None
+    extensions: list[str] | None
+
+
 class RAGClient:
     """Client for the RAG API."""
     
@@ -155,3 +168,54 @@ class RAGClient:
         response.raise_for_status()
         
         return response.json()
+
+    def list_campaigns(self) -> List[CampaignResponse]:
+        """
+        List all campaigns.
+        
+        Returns:
+            List[CampaignResponse]: The list of campaigns.
+            
+        Raises:
+            requests.HTTPError: If the request fails.
+        """
+        url = f"{self.base_url}/v2/campaigns"
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        data = response.json()
+        return [CampaignResponse(**item) for item in data]
+
+    def create_campaign(self, full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: list[str] | None = None) -> CampaignResponse:
+        """
+        Create a new campaign.
+        
+        Args:
+            full_name (str): The full name of the campaign.
+            short_name (str): The short name of the campaign.
+            roleplay_system (str): The roleplay system of the campaign.
+            language (str): The language of the campaign.
+            active_summary_file (str | None): The active summary file of the campaign.
+            session_log_file (str | None): The session log file of the campaign.
+            extensions (list[str] | None): The extensions of the campaign.
+            
+        Returns:
+            CampaignResponse: The created campaign.
+            
+        Raises:
+            requests.HTTPError: If the request fails.
+        """
+        url = f"{self.base_url}/v2/campaigns"
+        payload = {
+            "full_name": full_name,
+            "short_name": short_name,
+            "roleplay_system": roleplay_system,
+            "language": language,
+            "active_summary_file": active_summary_file,
+            "session_log_file": session_log_file,
+            "extensions": extensions
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        
+        return CampaignResponse(**response.json())

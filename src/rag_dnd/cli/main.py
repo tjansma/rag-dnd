@@ -20,10 +20,12 @@ app = typer.Typer(help="D&D RAG CLI Management Tool",
 llm_app = typer.Typer(help="Manage LLM", no_args_is_help=True)
 rag_app = typer.Typer(help="Manage RAG knowledge base", no_args_is_help=True)
 session_app = typer.Typer(help="Manage session transcripts", no_args_is_help=True)
+campaign_app = typer.Typer(help="Manage campaigns", no_args_is_help=True)
 
 app.add_typer(llm_app, name="llm")
 app.add_typer(rag_app, name="rag")
 app.add_typer(session_app, name="session")
+app.add_typer(campaign_app, name="campaign")
 
 console = Console()
 
@@ -284,5 +286,57 @@ def llm_expand_query(session_guid: str, query: str):
 if __name__ == "__main__":
     try:
         app()
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+# ==================================================================
+# Campaign commands
+# ==================================================================
+
+@campaign_app.command("list")
+def campaign_list():
+    """
+    List all campaigns.
+
+    Returns:
+        None
+    """
+    try:
+        client = _get_client()
+        campaigns = client.list_campaigns()
+        
+        table = Table(title="Campaigns")
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Full Name", style="magenta")
+        table.add_column("Short Name", style="green")
+        
+        for campaign in campaigns:
+            table.add_row(str(campaign.id), campaign.full_name, campaign.short_name)
+            
+        console.print(table)
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@campaign_app.command("create")
+def campaign_create(full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: list[str] | None = None):
+    """
+    Create a new campaign.
+
+    Args:
+        full_name (str): The full name of the campaign.
+        short_name (str): The short name of the campaign.
+        roleplay_system (str): The roleplay system of the campaign.
+        language (str): The language of the campaign.
+        active_summary_file (str | None): The active summary file of the campaign.
+        session_log_file (str | None): The session log file of the campaign.
+        extensions (list[str] | None): The extensions of the campaign.
+
+    Returns:
+        None
+    """
+    try:
+        client = _get_client()
+        campaign = client.create_campaign(full_name, short_name, roleplay_system, language, active_summary_file, session_log_file, extensions)
+        console.print(f"[bold green]Success![/bold green] Campaign created: {campaign.full_name}")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")

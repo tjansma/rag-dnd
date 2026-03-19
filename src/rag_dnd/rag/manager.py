@@ -22,14 +22,11 @@ from .chunker import Chunker
 logger = logging.getLogger(__name__)
 
 
-def ensure_collection(session: Session,
-                      collection_name: str,
-                      campaign_id: int) -> Collection:
+def ensure_collection(collection_name, campaign_id) -> Collection:
     """
     Ensure a collection exists.
     
     Args:
-        session (Session): The database session.
         collection_name (str): The name of the collection.
         campaign_id (int): The id of the campaign to which the collection belongs.
                 
@@ -37,17 +34,17 @@ def ensure_collection(session: Session,
         Collection: The collection.
     """
     logger.debug(f"Ensuring collection: {collection_name}")
-    # Check if the collection already exists in the local database
-    collection = session.query(Collection).filter_by(name=collection_name).first()
-
-    if collection is None:
-        # If not, create a new collection entry
-        logger.debug(f"Collection {collection_name} does not exist. Creating...")
-        collection = Collection(name=collection_name,
-                                campaign_id=campaign_id)
-        session.add(collection)
-        # session.commit()
-
+    with get_session() as session:
+        collection = session.query(Collection).filter_by(name=collection_name).first()
+        logger.debug(f"Collection {collection_name} found: {collection is not None}")
+        if collection is None:
+            logger.debug(f"Collection {collection_name} does not exist. Creating...")
+            collection = Collection(name=collection_name, campaign_id=campaign_id)
+            session.add(collection)
+            session.commit()
+            logger.debug(f"Collection {collection_name} created.")
+        session.expunge_all()
+        logger.debug(f"Collection {collection_name} returned.")
     return collection
 
 

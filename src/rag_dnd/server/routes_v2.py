@@ -5,12 +5,65 @@ from fastapi import APIRouter, UploadFile, HTTPException
 
 from .. import rag
 from .upload import temporary_upload
-from .schemas import QueryRequest, LLMMessage, ExpandQueryRequest
+from .schemas import QueryRequest, LLMMessage, ExpandQueryRequest, \
+    CreateCampaignRequest, CampaignResponse
 
 logger = logging.getLogger(__name__)
 
 router_v2 = APIRouter(prefix="/v2")
 
+
+@router_v2.post("/campaigns", status_code=201)
+def create_campaign(request: CreateCampaignRequest) -> CampaignResponse:
+    """
+    Create a new campaign.
+
+    Args:
+        request (CreateCampaignRequest): The request to create a new campaign.
+
+    Returns:
+        CampaignResponse: The created campaign.
+    """
+    campaign = rag.campaign.Campaign.create(
+        full_name=request.full_name,
+        short_name=request.short_name,
+        roleplay_system=request.roleplay_system,
+        language=request.language,
+        active_summary_file=request.active_summary_file,
+        session_log_file=request.session_log_file,
+        extensions=request.extensions
+    )
+    return CampaignResponse(
+        id=campaign.metadata.id,
+        full_name=campaign.metadata.full_name,
+        short_name=campaign.metadata.short_name,
+        roleplay_system=campaign.metadata.system,
+        language=campaign.metadata.language,
+        active_summary_file=campaign.metadata.active_summary_file,
+        session_log_file=campaign.metadata.session_log_file,
+        extensions=campaign.metadata.extensions
+    )
+
+
+@router_v2.get("/campaigns")
+def get_campaign_list() -> list[CampaignResponse]:
+    """
+    Get a list of all campaigns.
+
+    Returns:
+        list[CampaignResponse]: The list of campaigns.
+    """
+    campaigns = rag.campaign.Campaign.list_all()
+    return [CampaignResponse(
+        id=campaign.metadata.id,
+        full_name=campaign.metadata.full_name,
+        short_name=campaign.metadata.short_name,
+        roleplay_system=campaign.metadata.system,
+        language=campaign.metadata.language,
+        active_summary_file=campaign.metadata.active_summary_file,
+        session_log_file=campaign.metadata.session_log_file,
+        extensions=campaign.metadata.extensions
+    ) for campaign in campaigns]
 
 @router_v2.put("/campaigns/{campaign_short_name}/documents", status_code=200)
 def update_document(file: UploadFile,
