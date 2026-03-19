@@ -229,7 +229,7 @@ def session_to_markdown(session_id: int) -> str:
     return "\n\n".join(markdown_lines)
 
 def transcript_summarize(id: int, 
-                      prompt_file: str = ClientConfig.load().summary_prompt_file, 
+                      prompt_file: str | None = None, 
                       output: Optional[str] =  None, 
                       append: bool = False) -> str:
     """
@@ -244,6 +244,9 @@ def transcript_summarize(id: int,
     Returns:
         str: The summary text.
     """
+    if prompt_file is None:
+        prompt_file = ClientConfig.load().summary_prompt_file
+
     # 1. Load Prompt
     prompt_path = Path(prompt_file).resolve()
     if not prompt_path.exists():

@@ -26,7 +26,45 @@ app.add_typer(rag_app, name="rag")
 app.add_typer(session_app, name="session")
 
 console = Console()
-client = RAGClient(ClientConfig.load())
+
+# ------------------------------------------------------------------
+# Lazy client initialization
+# ------------------------------------------------------------------
+# The client cannot be created at module level because the --campaign
+# flag may override the config. We defer creation until first use.
+# ------------------------------------------------------------------
+_client: RAGClient | None = None
+_campaign_override: str | None = None
+
+
+def _get_client() -> RAGClient:
+    """Get or create the RAG client, applying any --campaign override."""
+    global _client
+    if _client is None:
+        overrides = {}
+        if _campaign_override:
+            overrides["campaign"] = _campaign_override
+        config = ClientConfig.load(overrides=overrides if overrides else None)
+        _client = RAGClient(config)
+    return _client
+
+
+@app.callback()
+def main_callback(
+    campaign: Optional[str] = typer.Option(
+        None, "--campaign", "-c",
+        help="Override the campaign short name from config."
+    )
+):
+    """D&D RAG CLI Management Tool."""
+    global _campaign_override
+    if campaign:
+        _campaign_override = campaign
+
+
+# ==================================================================
+# RAG commands
+# ==================================================================
 
 @rag_app.command()
 def search(query: str, limit: int = 5):
@@ -41,6 +79,7 @@ def search(query: str, limit: int = 5):
         None
     """
     try:
+        client = _get_client()
         results = client.query(query, limit=limit)
         
         table = Table(title=f"Search Results for: '{query}'")
@@ -57,29 +96,11 @@ def search(query: str, limit: int = 5):
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
-@rag_app.command()
-def add(file_path: str):
-    """
-    Add a document to the index.
-    
-    Args:
-        file_path (str): The path to the document to add.
-    
-    Returns:
-        None
-    """
-    try:
-        abs_path = os.path.abspath(file_path)
-        console.print(f"Adding document: [green]{abs_path}[/green]")
-        client.store_document(abs_path)
-        console.print("[bold green]Success![/bold green] Document added.")
-    except Exception as e:
-        console.print(f"[bold red]Error:[/bold red] {e}")
 
 @rag_app.command()
 def upload(file_path: str, collection: str | None = None):
     """
-    Upload a document to the index.
+    Upload (store or update) a document in the campaign index.
     
     Args:
         file_path (str): The path to the document to upload.
@@ -89,55 +110,39 @@ def upload(file_path: str, collection: str | None = None):
         None
     """
     try:
+        client = _get_client()
         abs_path = os.path.abspath(file_path)
         console.print(f"Uploading document: [green]{abs_path}[/green]")
-        status_code = client.store_document_v2(abs_path, collection)
-        if status_code == 201:
-            console.print("[bold green]Success![/bold green] New document added.")
-        elif status_code == 200:
-            console.print("[bold yellow]Success![/bold yellow] Existing document updated.")
-        else:
-            console.print(f"[bold red]Error:[/bold red] Unexpected status code: {status_code}")
+        client.store_document(abs_path, collection=collection)
+        console.print("[bold green]Success![/bold green] Document stored.")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
-@rag_app.command()
-def update(file_path: str):
-    """
-    Update an existing document.
-
-    Args:
-        file_path (str): The path to the document to update.
-    
-    Returns:
-        None
-    """
-    try:
-        abs_path = os.path.abspath(file_path)
-        console.print(f"Updating document: [yellow]{abs_path}[/yellow]")
-        client.update_document(abs_path)
-        console.print("[bold green]Success![/bold green] Document updated.")
-    except Exception as e:
-        console.print(f"[bold red]Error:[/bold red] {e}")
 
 @rag_app.command()
-def remove(file_path: str):
+def remove(filename: str, collection: str | None = None):
     """
-    Remove a document from the index.
+    Remove a document from the campaign index.
 
     Args:
-        file_path (str): The path to the document to remove.
+        filename (str): The filename of the document to remove.
+        collection (str | None): The collection to remove the document from.
 
     Returns:
         None
     """
     try:
-        abs_path = os.path.abspath(file_path)
-        console.print(f"Removing document: [red]{abs_path}[/red]")
-        client.delete_document(abs_path)
+        client = _get_client()
+        console.print(f"Removing document: [red]{filename}[/red]")
+        client.delete_document(filename, collection=collection)
         console.print("[bold green]Success![/bold green] Document removed.")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
+
+
+# ==================================================================
+# Session commands
+# ==================================================================
 
 @session_app.command("list")
 def session_list():
@@ -234,6 +239,11 @@ def session_summarize(id: int,
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
+
+# ==================================================================
+# LLM commands
+# ==================================================================
+
 @llm_app.command("chat")
 def llm_chat(prompt: str):
     """
@@ -246,6 +256,7 @@ def llm_chat(prompt: str):
         None
     """
     try:
+        client = _get_client()
         response = client.chat(prompt)
         console.print(response)
     except Exception as e:
@@ -264,10 +275,14 @@ def llm_expand_query(session_guid: str, query: str):
         str | None: The expanded query, or None if not found.
     """
     try:
+        client = _get_client()
         expanded_query = client.expand_query(session_guid, query)
         console.print(expanded_query)
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
 if __name__ == "__main__":
-    app()
+    try:
+        app()
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
