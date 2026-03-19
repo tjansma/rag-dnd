@@ -92,14 +92,14 @@ def _store_impl(session: Session, file: Path, config: Config,
     # Create the Document object.
     # Important: 'custom_filename' is the persistent identifier in the DB,
     # even if 'filename' is a temporary uploaded file path.
-    document = Document(file_name=file.name, file_hash=file_hash,
+    document = Document(file_hash=file_hash,
                         custom_filename=custom_filename,
                         collection_id=collection.id)
 
     # Chunk the document
     logger.debug(f"Chunking document with strategy: heading2")
     chunker = Chunker(strategy="heading2")
-    chunks = chunker.chunk(document)
+    chunks = chunker.chunk(document, file)
     logger.debug(f"Chunked document into {len(chunks)} chunks.")
 
     # Add the document and chunks to the database
@@ -216,7 +216,7 @@ def query(query: str,
         results.append(
             QueryResult(
                 text=chunk.text, 
-                source_document=chunk.parent_document.file_name
+                source_document=chunk.parent_document.custom_filename
             )
         )
 

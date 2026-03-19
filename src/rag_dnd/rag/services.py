@@ -1,21 +1,20 @@
 """Module-wide services."""
 import logging
-
-from .models import Document
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
 
-def load_document_text(document: Document) -> str:
+def load_document_text(source_file: Path) -> str:
     """
     Load the text of a text-document.
     
     Args:
-        document (Document): The document to load.
+        source_file (Path): The path to the document file.
         
     Returns:
         str: The text of the document.
     """
-    logger.debug(f"Loading document text: {document.file_name}")
-    with open(document.file_name, "r") as f:
+    logger.debug(f"Loading document text: {source_file}")
+    with open(source_file, "r") as f:
         return f.read()

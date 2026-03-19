@@ -2,6 +2,7 @@
 Chunker for markdown text based on headers.
 """
 from hashlib import sha256
+from pathlib import Path
 import logging
 from typing import get_args,List, Literal
 import re
@@ -40,22 +41,26 @@ class Chunker:
         
         self.strategy = strategy
 
-    def chunk(self, document: Document) -> List[Chunk]:
+    def chunk(self, document: Document, source_file: Path) -> List[Chunk]:
         """
         Chunks the text based on the strategy.
         
         Args:
             document (Document): The document to chunk.
+            source_file (Path): The path to the source file on disk.
         
         Returns:
             List[Chunk]: A list of chunks.
+            
+        Raises:
+            FileNotFoundError: If the source file is not found.
         """
-        logger.debug(f"Chunking document: {document.file_name}")
+        logger.debug(f"Chunking document: {document.custom_filename}")
         try:
-            text = load_document_text(document)
+            text = load_document_text(source_file)
         except FileNotFoundError:
-            logger.error(f"Document {document.file_name} not found.")
-            raise FileNotFoundError(f"Document {document.file_name} not found.")
+            logger.error(f"Source file {source_file} not found.")
+            raise
 
         # Define the headers to split on
         headers_to_split_on = [

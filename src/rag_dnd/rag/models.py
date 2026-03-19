@@ -39,7 +39,6 @@ class Document(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
-    file_name: orm.Mapped[str] = orm.mapped_column(sa.String)
     file_hash: orm.Mapped[str] = orm.mapped_column(sa.String, index=True)
     custom_filename: orm.Mapped[str] = orm.mapped_column(sa.String, index=True)
     collection_id: orm.Mapped[int] = \
@@ -155,8 +154,8 @@ class CampaignMetadata(ORMBase):
         Returns:
             str: The validated value.
         """
-        if "!" in value:
-            raise ValueError("Short name cannot contain '!'")
+        if "_-_" in value or "/" in value:
+            raise ValueError("Short name cannot contain '_-_' or '/'")
         return value
 
     def get_default_collection_name(self, config: Config | None = None) -> str:
@@ -172,4 +171,5 @@ class CampaignMetadata(ORMBase):
         """
         if config is None:
             config = Config.load()
-        return f"{self.short_name}!{config.embeddings_model}"
+        sanitized_model_name = config.embeddings_model.replace("/", "_")
+        return f"{self.short_name}_-_{sanitized_model_name}"
