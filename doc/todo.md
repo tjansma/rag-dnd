@@ -72,20 +72,29 @@
   - [x] `__all__` export list in `rag/__init__.py`.
   - [x] `CampaignMetadata.load_by_*`: `expunge_all()` voor detached objecten.
 
-## v0.3: Multi-Campaign Architecture (Next Implementation)
+## v0.3: Multi-Campaign Architecture (Completed)
 
-- [ ] **Design Status**
+- [x] **Design Status**
   - [x] Analyze project and requirements.
   - [x] Create design document: `doc/campaign_structure_design.md`.
-- [ ] **Core Refactor**
-  - [ ] **Data Separation**: Move user data to `~/.rag_dnd/campaigns/`.
-  - [ ] **Configuration**: Update `config.py` to support dynamic campaign loading.
-- [ ] **Server Logic**
-  - [ ] Implement `Campaign` class and `yaml` loader.
-  - [ ] Implement `PromptEngine` to render system prompts server-side (injecting character sheets).
-  - [ ] Add `GET /campaigns/{id}/context` API endpoint.
-- [ ] **Client Updates**
-  - [ ] Refactor hooks/CLI to fetch context via API (remove local Jinja2).
+- [x] **Server Logic**
+  - [x] `Campaign` class with `create()`, `list_all()`, `from_db_by_short_name()`.
+  - [x] v2 RESTful API: `POST/GET /v2/campaigns`, campaign-scoped document/query routes.
+  - [x] `ensure_collection()` with own session management.
+  - [x] ChromaDB-compatible collection naming (`_-_` separator).
+  - [x] `CampaignMetadata` model with `short_name` validator.
+- [x] **Document Model Refactor**
+  - [x] Removed `Document.file_name` (redundant with `custom_filename`).
+  - [x] `chunker.chunk()` accepts `source_file: Path` parameter.
+  - [x] `load_document_text()` decoupled from ORM, accepts `Path`.
+- [x] **Client Updates**
+  - [x] `ClientConfig`: `campaign` + `collection` fields, `RAG_DND_CAMPAIGN` env var.
+  - [x] `RAGClient`: v2 methods + `list_campaigns()` + `create_campaign()`.
+  - [x] CLI: `--campaign` flag, lazy init, `campaign list/create` commands.
+  - [x] Hooks & MCP: campaign-aware via shared `ClientConfig` (no code changes needed).
+- [ ] **Deferred to future version**
+  - [ ] Data separation: Move user data to `~/.rag_dnd/campaigns/`.
+  - [ ] `PromptEngine`: Server-side system prompt rendering.
 
 ## v1.0: Enterprise Readiness (Roadmap)
 

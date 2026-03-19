@@ -22,13 +22,17 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
   - **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
 
-## Current Status (Feb 2026)
+## Current Status (Mar 2026)
 
 - **Fully Implemented:**
   - **Core Logic:** Hybrid Search, Parent-Child Retrieval, GPU Acceleration.
-  - **Server:** FastAPI backend handles concurrent requests.
-  - **Clients:** `rag-cli` (Admin), `rag-mcp` (IDE), Gemini Hooks (Context).
+  - **Server:** FastAPI backend with v2 RESTful campaign-scoped API.
+  - **Multi-Campaign:** `Campaign` CRUD, scoped document storage & querying.
+  - **v2 API:** `POST/GET /v2/campaigns`, `PUT/DELETE .../documents`, `POST .../query`.
+  - **Clients:** `rag-cli` (Admin + `--campaign` flag), `rag-mcp` (IDE), Gemini Hooks (Context).
+    All campaign-aware via shared `ClientConfig`.
   - **Ingestion:** Markdown support with hash-based update detection.
+    Chunker decoupled from ORM (`source_path: Path` parameter).
   - **Session Management:** Context-managed database sessions with singleton engine,
     `_store_impl`/`_delete_impl` helpers for transactional integrity, and
     `expire_on_commit=False` for safe detached object access.
@@ -36,8 +40,8 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
     throughout server routes and manager layer.
 
 - **In Progress / Planned:**
-  - **Multi-Campaign Architecture:** Redesigning to support multiple independent campaigns stored in user profile (`~/.rag_dnd`).
-  - **Client-Server Separation:** Moving prompt rendering logic to the server.
+  - **Prompt Engine:** Server-side rendering of system prompts with character sheet injection.
+  - **Data Separation:** Moving campaign data to user profile (`~/.rag_dnd/campaigns/`).
 
 ## Setup & Usage
 

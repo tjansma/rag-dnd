@@ -9,10 +9,11 @@ A **Retrieval-Augmented Generation (RAG)** system built to provide context-aware
 - **Narrative Aware:** Parent-Child retrieval ensures context is never lost at sentence boundaries.
 - **Dual-Store Architecture:** Source of truth in SQLite, vectors in ChromaDB.
 - **High Performance:** GPU acceleration for embedding generation (20-50x speedup).
+- **Multi-Campaign:** Campaign-scoped document storage, querying, and management via v2 RESTful API.
 - **Client Ecosystem:**
-  - **Gemini CLI Hook:** Auto-injects context into `gemini` prompts.
+  - **Gemini CLI Hook:** Auto-injects campaign-aware context into `gemini` prompts.
   - **MCP Server:** Provides "Search Logs" tools to Claude, Cursor, and other IDEs.
-  - **CLI Tool:** Administrative commands for ingestion and management.
+  - **CLI Tool:** Administrative commands for ingestion, management, and campaign CRUD.
 
 ## 🏗️ Architecture
 
@@ -48,13 +49,16 @@ uv run rag-server
 
 The server will start on `http://localhost:8001`.
 
-### 2. Indexing Data
+### 2. Campaign Setup
 
-You can index documents via the CLI tool.
+Create a campaign and configure it:
 
 ```bash
-# Add a document
-uv run rag-cli rag add data/session_log.md
+# Create a campaign
+uv run rag-cli campaign create "Lost Mine of Phandelver" lmop_tod "D&D 5e" "nl"
+
+# Upload a document
+uv run rag-cli --campaign lmop_tod rag upload data/session_log.md
 ```
 
 ### 3. Querying
@@ -65,8 +69,8 @@ Perform a search against the knowledge base:
 # Via CLI
 uv run rag-cli rag search "Wie is Nezznar?"
 
-# Via API
-curl -X POST "http://localhost:8001/rag_query" \
+# Via API (v2)
+curl -X POST "http://localhost:8001/v2/campaigns/lmop_tod/query" \
      -H "Content-Type: application/json" \
      -d '{"query": "Wat weet Jams over de Black Spider?"}'
 ```
@@ -75,9 +79,10 @@ curl -X POST "http://localhost:8001/rag_query" \
 
 - [x] **Core RAG Logic:** Chunking, Embedding, Storage.
 - [x] **GPU Acceleration:** Jina V3 + CUDA 12.6.
-- [x] **Backend API:** FastAPI implementation.
+- [x] **Backend API:** FastAPI v2 RESTful routes.
 - [x] **Hybrid Search:** BM25 + Vector RRF Fusion.
-- [x] **Integrations:** Gemini CLI Hook, MCP Server, Admin CLI.
-- [ ] **Multi-Campaign Support:** (In Design Phase) - Separation of user data and application logic.
+- [x] **Multi-Campaign Support:** Campaign CRUD, scoped storage & querying.
+- [x] **Integrations:** Gemini CLI Hook, MCP Server, Admin CLI (all campaign-aware).
+- [ ] **Prompt Engine:** Server-side system prompt rendering.
 
 See `doc/todo.md` for the technical task list and `doc/roadmap.md` for the long-term vision.

@@ -18,17 +18,19 @@ This document outlines the vision and future features for the `rag-dnd` project.
   - Perform parallel vector searches for each sub-query.
   - De-duplicate and re-rank results to cover multiple semantic aspects (e.g., "visuals" vs "dialogue").
 
-## 2. Multi-Campaign Architecture (In Progress)
+## 2. Multi-Campaign Architecture (v0.3 — Completed)
 
-- [ ] **Data & Config Separation**
+- [x] **Campaign CRUD** — `Campaign.create()`, `Campaign.list_all()`, `from_db_by_short_name()`.
+- [x] **v2 RESTful API** — Campaign-scoped endpoints (`POST/GET /v2/campaigns`, `PUT/DELETE/POST .../documents`).
+- [x] **Client Config** — `campaign` field in TOML, env var `RAG_DND_CAMPAIGN`, CLI `--campaign` flag.
+- [x] **Document Model Refactor** — Removed `file_name`, chunker accepts `source_path: Path`.
+- [x] **ChromaDB Naming** — `_-_` separator for collection names.
+- [ ] **Data & Config Separation** (Deferred)
   - Store campaign data in user profile (`~/.rag_dnd/campaigns/`).
   - Separate application logic from content.
-  - Implement `campaign.yaml` metadata standard.
-- [ ] **Prompt Engine**
+- [ ] **Prompt Engine** (Deferred)
   - Server-side rendering of System Prompts.
   - Dynamic injection of Character Sheets and Lore into context window.
-- [ ] **Client API**
-  - Endpoints to switch campaigns and retrieve rendered contexts.
 
 ## 3. Content Ingestion (PDF & Rules)
 
