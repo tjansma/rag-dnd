@@ -150,7 +150,7 @@ class RAGClient:
         Expand the query into a more specific search query.
         
         Args:
-            session_id (int): The ID of the session.
+            session_guid (str): The GUID of the session.
             query (str): The query to expand.
         
         Returns:

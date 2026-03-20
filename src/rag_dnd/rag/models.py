@@ -63,6 +63,9 @@ class Sentence:
 class Chunk(ORMBase):
     """Class to represent a chunk of a document."""
     __tablename__ = "chunks"
+    # INFO: This is required because we are adding the 'sentences' attribute 
+    # after the class definition. Conscious decision to not use SA2.x features 
+    # yet.
     __allow_unmapped__ = True
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
