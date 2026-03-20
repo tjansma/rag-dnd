@@ -8,6 +8,23 @@ from rank_bm25 import BM25Okapi
 from ..config import Config
 from .models import Chunk
 
+STOP_WORDS = {
+    # Dutch
+    "de", "het", "een", "en", "van", "ik", "te", "dat", "die", "in", "hij", "zij", "wij", "is", 
+    "niet", "zijn", "wat", "om", "ook", "als", "voor", "op", "maar", "met", "er", "aan", "mij", 
+    "dit", "we", "hebt", "ben", "kan", "heb", "uit", "naar", "dan", "of", "je", "jij", "ze", "wel",
+    "nog", "na", "hier", "daar", "waar", "hoe", "wie", "waarom", "toch", "al", "door", "tot",
+    "jou", "uw", "u", "mijzelf", "ons", "onze", "doen", "geen", "welke",
+    "heeft", "hebben", "had", "hadden", "kunnen", "zullen", "zal", "zou", "moet", "moeten",
+    "mag", "mogen", "wil", "willen", "worden", "werd", "geworden", "was", "waren", "geweest",
+    "bent", "hun", "haar", "hem", "hen", "jullie", "jouw", "mijn", "meer", "veel", "alles", 
+    "niets", "echt", "heel", "erg", "gaan", "gaat", "ging", "komen", "komt", "kwam", "doet", "deed",
+    # English
+    "the", "a", "an", "and", "in", "on", "at", "to", "for", "is", "of", "it", "that", "this", 
+    "what", "how", "who", "with", "but", "as", "or", "be", "are", "was", "were", "i", "you", "he",
+    "she", "we", "they", "my", "your", "his", "her", "so", "do", "not"
+}
+
 logger = logging.getLogger(__name__)
 
 class VectorStore:
@@ -139,48 +156,80 @@ class VectorStore:
         logger.info(f"Performing hybrid search for '{query_text}' (Top-{k})")
 
         # 1. Semantic search (Chroma)
-        # Fetch 2*k results for broader fusion candidates
+        # Fetch more results initially to ensure we have enough candidates after filtering
+        fetch_k = max(2*k, 20)
         semantic_results = self.collection.query(
             query_embeddings=query_embedding,
-            n_results=2*k
+            n_results=fetch_k
         )
 
         semantic_ranks = {}
-        # Parse result: metadatas is [[{...}, {...}]]
-        if semantic_results["metadatas"]:
-            for rank, meta in enumerate(semantic_results["metadatas"][0]):
-                chunk_id = meta.get("chunk_id")
-                if chunk_id is not None:
-                    semantic_ranks[int(cast(Any, chunk_id))] = rank
+        valid_semantic_chunk_ids = set()
+        
+        # Parse result: metadatas and distances
+        if semantic_results["metadatas"] and semantic_results["distances"]:
+            metadatas = semantic_results["metadatas"][0]
+            distances = semantic_results["distances"][0]
+            
+            rank = 0
+            for meta, distance in zip(metadatas, distances):
+                chunk_id_val = meta.get("chunk_id")
+                if chunk_id_val is not None:
+                    chunk_id = int(cast(Any, chunk_id_val))
+                    if distance <= self.config.relevance_threshold:
+                        if chunk_id not in semantic_ranks:
+                            semantic_ranks[chunk_id] = rank
+                            rank += 1
+                        valid_semantic_chunk_ids.add(chunk_id)
+                    else:
+                        logger.debug(f"Skipping semantic chunk {chunk_id} with distance {distance:.4f} > {self.config.relevance_threshold}")
+
+        # If absolutely no semantic candidates passed the threshold, we return empty early.
+        # This prevents returning entirely irrelevant results based solely on noise in BM25.
+        if not valid_semantic_chunk_ids:
+            logger.info(f"No semantic results passed the relevance threshold ({self.config.relevance_threshold}).")
+            # We DONT return early anymore! BM25 might still find a strong keyword match.
 
         # 2. Keyword search (BM25)
         keyword_ranks = {}
         if self.bm25:
-            tokenized_query = query_text.lower().split()
-            # Get scores
-            scores = self.bm25.get_scores(tokenized_query)
-            # Get top 2*k indices sorted by score descending
-            top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:2*k]
+            # Strip stop words from the query! This prevents false positives on "wat is de".
+            tokenized_query = [w for w in query_text.lower().split() if w not in STOP_WORDS]
+            
+            if tokenized_query:
+                # Get scores
+                scores = self.bm25.get_scores(tokenized_query)
+                # Get top indices sorted by score descending
+                top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:fetch_k]
 
-            for rank, index in enumerate(top_indices):
-                score = scores[index]
-                if score > 0:       # Only relevant matches
-                    if index < len(self.chunk_id_map):
-                        chunk_id = self.chunk_id_map[index]
-                        if chunk_id != -1:
-                            keyword_ranks[chunk_id] = rank
+                rank = 0
+                for index in top_indices:
+                    score = scores[index]
+                    # A BM25 score > 2.0 acts as a reliable baseline filter.
+                    if score > 3.0:       
+                        if index < len(self.chunk_id_map):
+                            chunk_id = self.chunk_id_map[index]
+                            if chunk_id != -1:
+                                if chunk_id not in keyword_ranks:
+                                    keyword_ranks[chunk_id] = rank
+                                    rank += 1
 
         # 3. Reciprocal Rank Fusion (RRF)
         # score = 1 / (rank + k_const)
         rrf_k = 60
         combined_scores = {}
 
+        # We consider chunk_ids that are EITHER semantically valid OR strong keyword matches!
         all_ids = set(semantic_ranks.keys()) | set(keyword_ranks.keys())
+        
+        if not all_ids:
+            logger.info("No candidates passed either the semantic threshold or the BM25 noise filter. Returning 0 results.")
+            return tuple()
 
         logger.debug(f"RRF Scoring (Top candidates):")
         for chunk_id in all_ids:
-            semantic_rank = semantic_ranks.get(chunk_id, k*10)  # High penalty if missing
-            keyword_rank = keyword_ranks.get(chunk_id, k*10)
+            semantic_rank = semantic_ranks.get(chunk_id, fetch_k)  # Default penalty
+            keyword_rank = keyword_ranks.get(chunk_id, fetch_k)
             score = (1.0 / (semantic_rank + rrf_k)) + (1.0 / (keyword_rank + rrf_k))
             combined_scores[chunk_id] = score
 
@@ -196,7 +245,7 @@ class VectorStore:
         # 5. Return top k chunk_ids
         top_ids = [chunk_id for chunk_id, score in sorted_results[:k]]
 
-        logger.info(f"Hybrid search merged {len(semantic_ranks)} semantic and {len(keyword_ranks)} keyword results into {len(top_ids)} unique final candidates.")
+        logger.info(f"Hybrid search filtered down to {len(top_ids)} relevant final candidates.")
         return tuple(top_ids)
         
 
