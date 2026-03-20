@@ -3,14 +3,14 @@ from contextlib import contextmanager
 from typing import Generator
 import logging
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..config import Config
 
 logger = logging.getLogger(__name__)
 
-_engine = None
+_engine: Engine | None = None
 
 def _get_engine():
     """
@@ -25,7 +25,26 @@ def _get_engine():
         config = Config.load()
         # INFO potential risk of logging sensitive information (password in URL)
         logger.debug(f"Creating engine for database: {config.content_database_url}")
-        _engine = create_engine(url=config.content_database_url)
+        
+        # SQLite requires check_same_thread=False for multi-threaded access
+        if "sqlite" in config.content_database_url:
+            connect_args = {
+                "check_same_thread": False
+            }
+        else:
+            connect_args = {}
+        
+        _engine = create_engine(url=config.content_database_url,
+                                connect_args=connect_args)
+        
+        # Set PRAGMA for SQLite
+        if "sqlite" in config.content_database_url:
+            @event.listen(_engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                cursor.execute("PRAGMA synchronous=NORMAL;") 
+                cursor.close()
 
     # INFO potential risk of logging sensitive information (password in URL)
     logger.debug(f"Using database: {_engine}")
