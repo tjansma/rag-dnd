@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..config import Config
 
-from .database import get_session, init_db
+from .database import get_session
 from .embeddings import get_embedding_instance
 from .exceptions import DocumentExistsError, DocumentNotFoundError
 from .llm import get_llm
@@ -69,22 +69,35 @@ def get_collection(session: Session, collection_name: str) -> Collection:
     return collection
 
 
-def _store_impl(session: Session, file: Path, config: Config,
-                custom_filename: str, collection: Collection) -> None:
-    """Internal: store a document using an existing session.
-
-    Handles SQLite persistence, embedding, and ChromaDB indexing.
-    The caller is responsible for session lifecycle management.
+def store_document(collection: Collection,
+                   file: Path,
+                   session: Session,
+                   custom_filename: str | None = None,
+                   config: Config | None = None) -> None:
+    """Store a document in the database.
 
     Args:
-        session (Session): An active database session.
+        collection (Collection): The collection to store the document in.
         file (Path): The path to the document.
+        session (Session): The database session.
+        custom_filename (str | None): The custom filename to use.
         config (Config): The configuration.
-        custom_filename (str): The identifier used in the database.
 
     Raises:
+        FileNotFoundError: If the source file does not exist.
         DocumentExistsError: If the document already exists in the database.
     """
+    logger.info(f"manager.store_document: Storing document: {file}")
+    if not file.exists():
+        logger.error(f"manager.store_document: File {file} not found.")
+        raise FileNotFoundError(f"File {file} not found.")
+
+    if config is None:
+        config = Config.load()
+
+    if custom_filename is None:
+        custom_filename = file.name
+
     # Calculate SHA256 hash to detect changes and avoid duplicate processing
     with open(file, "rb") as f:
         file_hash = sha256(f.read()).hexdigest()
@@ -131,38 +144,6 @@ def _store_impl(session: Session, file: Path, config: Config,
     logger.debug(f"Rebuilding Vector Store BM25 index.")
     vector_store.rebuild_bm25_index()
     logger.info(f"Stored document: {file.name} with {len(chunks)} chunks.")
-
-
-def store_document(collection: Collection,
-                   file: Path,
-                   session: Session,
-                   custom_filename: str | None = None,
-                   config: Config | None = None) -> None:
-    """Store a document in the database.
-
-    Args:
-        collection (Collection): The collection to store the document in.
-        file (Path): The path to the document.
-        session (Session): The database session.
-        custom_filename (str | None): The custom filename to use.
-        config (Config): The configuration.
-
-    Raises:
-        FileNotFoundError: If the source file does not exist.
-        DocumentExistsError: If the document already exists in the database.
-    """
-    logger.info(f"manager.store_document: Storing document: {file}")
-    if not file.exists():
-        logger.error(f"manager.store_document: File {file} not found.")
-        raise FileNotFoundError(f"File {file} not found.")
-
-    if config is None:
-        config = Config.load()
-
-    if custom_filename is None:
-        custom_filename = file.name
-
-    _store_impl(session, file, config, custom_filename, collection)
 
 
 def query(query: str, 
@@ -222,48 +203,6 @@ def query(query: str,
 
     return results
 
-def _delete_impl(session: Session, custom_filename: str,
-                 config: Config, collection: Collection) -> None:
-    """Internal: delete a document using an existing session.
-
-    Handles ChromaDB cleanup and SQLite deletion.
-    The caller is responsible for session lifecycle management.
-
-    Args:
-        session (Session): An active database session.
-        custom_filename (str): The identifier used in the database.
-        config (Config): The configuration.
-
-    Raises:
-        DocumentNotFoundError: If the document does not exist in the database.
-    """
-    # Query the document by custom_filename
-    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
-    if document is None:
-        logger.error(f"Delete failed: Document {custom_filename} not found in DB.")
-        raise DocumentNotFoundError(f"Delete failed: Document {custom_filename} not found in DB.")
-
-    # 1. Clean up Vector Store (Child) first
-    vector_store = get_vector_store(collection.name, config)
-    chunk_ids = tuple(chunk.id for chunk in document.chunks)
-    vector_store.delete_chunks_by_id(chunk_ids)
-
-    # 2. Clean up SQLite (Parent)
-    # Chunks in SQLite are automatically deleted via cascade="all, delete-orphan"
-    try:
-        logger.debug(f"Deleting document: {document}")
-        session.delete(document)
-        session.commit()
-    except DatabaseError as e:
-        logger.error(f"Error deleting document: {e}")
-        session.rollback()
-        raise
-
-    # 3. Rebuild Vector Store BM25 index
-    logger.debug(f"Rebuilding Vector Store BM25 index.")
-    vector_store.rebuild_bm25_index()
-    logger.info(f"Deleted document: {custom_filename}")
-
 
 def delete_document(collection: Collection,
                     filename: str,
@@ -292,7 +231,32 @@ def delete_document(collection: Collection,
     if custom_filename is None:
         custom_filename = os.path.basename(filename)
 
-    _delete_impl(session, custom_filename, config, collection)
+    # Query the document by custom_filename
+    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
+    if document is None:
+        logger.error(f"Delete failed: Document {custom_filename} not found in DB.")
+        raise DocumentNotFoundError(f"Delete failed: Document {custom_filename} not found in DB.")
+
+    # 1. Clean up Vector Store (Child) first
+    vector_store = get_vector_store(collection.name, config)
+    chunk_ids = tuple(chunk.id for chunk in document.chunks)
+    vector_store.delete_chunks_by_id(chunk_ids)
+
+    # 2. Clean up SQLite (Parent)
+    # Chunks in SQLite are automatically deleted via cascade="all, delete-orphan"
+    try:
+        logger.debug(f"Deleting document: {document}")
+        session.delete(document)
+        session.commit()
+    except DatabaseError as e:
+        logger.error(f"Error deleting document: {e}")
+        session.rollback()
+        raise
+
+    # 3. Rebuild Vector Store BM25 index
+    logger.debug(f"Rebuilding Vector Store BM25 index.")
+    vector_store.rebuild_bm25_index()
+    logger.info(f"Deleted document: {custom_filename}")
 
 
 def update_document(collection: Collection,
@@ -344,68 +308,9 @@ def update_document(collection: Collection,
 
     # Perform a full "Delete & Replace" cycle using the shared session
     logger.debug(f"Deleting document: {custom_filename}")
-    _delete_impl(session, custom_filename, config, collection)
+    delete_document(collection, custom_filename, session, config=config)
 
     logger.debug(f"Storing document: {custom_filename}")
-    _store_impl(session, file, config, custom_filename, collection)
+    store_document(collection, file, session, custom_filename, config=config)
 
     logger.info(f"Updated document: {custom_filename}")
-
-def prompt_llm(prompt: list[dict],
-               config: Config | None = None) -> str:
-    """
-    Prompt the LLM.
-    
-    Args:
-        prompt (list[dict]): The prompt to send to the LLM.
-        config (Config): The configuration to use.
-        
-    Returns:
-        str: The response from the LLM.
-    """
-    if config is None:
-        config = Config.load()
-
-    logger.debug(f"Prompting LLM with: {prompt}")
-    # Get the LLM instance for the query expansion model
-    llm = get_llm(config.query_expansion_model, config.query_expansion_device)
-    # Apply the chat template to the prompt to expand it
-    text = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
-    # Generate the response from the expanded prompt
-    return llm.generate(text)
-
-def expand_query(query_to_expand: str,
-                 extra_context: str,
-                 config: Config | None = None) -> str:
-    """
-    Expand a query using the LLM.
-    
-    Args:
-        query_to_expand (str): The query to expand.
-        extra_context (str): The extra context to use.
-        config (Config): The configuration to use.
-        
-    Returns:
-        str: The expanded query.
-    """
-    if config is None:
-        config = Config.load()
-    # Read the system prompt for the query expansion model
-    with open(config.query_expansion_system_prompt, "r") as f:
-        system_prompt = f.read()
-    # Create the user prompt and include the extra context and query to expand
-    user_prompt = f"""<context>
-    {extra_context}
-    </context>
-
-    <query>
-    {query_to_expand}
-    </query>"""
-
-    logger.debug(f"Expanding query: {query_to_expand}")
-    prompt = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
-    ]
-    # Prompt the LLM with the expanded query
-    return prompt_llm(prompt, config)

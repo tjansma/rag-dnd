@@ -1,5 +1,5 @@
 from .campaign import Campaign
-from .manager import prompt_llm, expand_query
+from .llm import prompt_llm, expand_query
 from .models import QueryResult, Collection
 from .exceptions import RAGException, DocumentExistsError, DocumentNotFoundError
 

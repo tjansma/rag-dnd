@@ -194,7 +194,7 @@ def llm_generate(prompt: list[LLMMessage]) -> str:
     logger.debug(f"routes_v2.llm_generate: Entering {prompt=}")
     try:
         messages = [ { "role": message.role, "content": message.content } for message in prompt ]
-        result = rag.manager.prompt_llm(messages)
+        result = rag.prompt_llm(messages)
     except Exception as e:
         logger.error(f"routes_v2.llm_generate: Error generating text: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -212,7 +212,7 @@ def llm_expand_query(request: ExpandQueryRequest) -> str:
     """
     logger.debug(f"routes_v2.llm_expand_query: Entering {request=}")
     try:
-        result = rag.manager.expand_query(request.query, request.extra_context)
+        result = rag.expand_query(request.query, request.extra_context)
     except Exception as e:
         logger.error(f"routes_v2.llm_expand_query: Error expanding query: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

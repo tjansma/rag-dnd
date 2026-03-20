@@ -10,7 +10,20 @@ import re
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 from .models import Document, Chunk, Sentence
-from .services import load_document_text
+
+def load_document_text(source_file: Path) -> str:
+    """
+    Load the text of a text-document.
+    
+    Args:
+        source_file (Path): The path to the document file.
+        
+    Returns:
+        str: The text of the document.
+    """
+    logger.debug(f"Loading document text: {source_file}")
+    with open(source_file, "r") as f:
+        return f.read()
 
 logger = logging.getLogger(__name__)
 

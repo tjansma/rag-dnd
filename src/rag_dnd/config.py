@@ -23,13 +23,12 @@ _DEFAULTS = {
     "transcript_database": Path("db/relational/transcript.db"),
     "api_ip": "127.0.0.1",
     "api_port": 8001,
-    "embeddings_model": "intfloat/multilingual-e5-small",
+    "embeddings_model": "jinaai/jina-embeddings-v3",
     "embeddings_provider": "HuggingFace",
     "embeddings_device": "cpu",
     "vector_database": Path("db/vector"),
     "relevance_threshold": 0.5,
-    "content_database": "db/relational/content.db",
-#    "collection_name": "rag_dnd",
+    "content_database_url": "sqlite:///db/relational/content.db",
     "log_level": "WARNING",
     "log_file": Path("log/app.log"),
     "upload_dir": Path("uploads"),
@@ -140,7 +139,6 @@ class Config:
     vector_database: Path
     relevance_threshold: float
     content_database_url: str
-    # collection_name: str
     log_level: str
     log_file: Path
     upload_dir: Path
@@ -250,34 +248,11 @@ class Config:
         # ------------------------------------------------------------------
         # Content database
         # ------------------------------------------------------------------
-        _env_override(actual_config,
-                      "content_database", "RAG_DND_CONTENTDB")
-
-        # !!!!! HACK!!!! Should be fixed later to use a proper config value
-        # Build the database URL from the path
-        # Default to SQLite if no full URL is provided
-        db_path = actual_config["content_database"]
-        if "://" not in db_path:
-            # It's a plain path, construct a SQLite URL
-            actual_config["content_database_url"] = f"sqlite:///{db_path}"
-        else:
-            # It's already a full URL (e.g., postgresql...)
-            actual_config["content_database_url"] = db_path
-
-        # Remove the intermediate key so it doesn't clash with the dataclass
-        del actual_config["content_database"]
-        # !!!!! HACK!!!! Should be fixed later to use a proper config value
-        
-        # Not using _env_override because it's not a simple value
-        # It depends on the embeddings_model and the collection prefix
-        # if os.getenv("RAG_DND_COLLECTION_PREFIX"):
-        #     model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
-        #     actual_config["collection_name"] = \
-        #         f'{os.getenv("RAG_DND_COLLECTION_PREFIX")}_{model_name_slug}'
-        # else:
-        #     model_name_slug = str(actual_config["embeddings_model"]).replace("/", "_")
-        #     actual_config["collection_name"] = \
-        #         f'rag_dnd_{model_name_slug}'
+        if _env_override(actual_config,
+                         "content_database_url", "RAG_DND_CONTENTDB"):
+            db_path = actual_config["content_database_url"]
+            if "://" not in db_path:
+                actual_config["content_database_url"] = f"sqlite:///{db_path}"
 
         # ------------------------------------------------------------------
         # Logging and debug settings
@@ -324,4 +299,4 @@ class Config:
         Returns:
             str: A string representation of the configuration.
         """
-        return f"Config(data_dir={self.data_dir}, api_ip={self.api_ip}, api_port={self.api_port}, embeddings_model={self.embeddings_model}, embeddings_provider={self.embeddings_provider}, vector_database={self.vector_database}, content_database_url={self.content_database_url}, collection_name={self.collection_name}, log_level={self.log_level}, log_file={self.log_file})"
+        return f"Config(data_dir={self.data_dir}, api_ip={self.api_ip}, api_port={self.api_port}, embeddings_model={self.embeddings_model}, embeddings_provider={self.embeddings_provider}, vector_database={self.vector_database}, content_database_url={self.content_database_url}, log_level={self.log_level}, log_file={self.log_file})"

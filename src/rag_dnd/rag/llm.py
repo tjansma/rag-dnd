@@ -3,6 +3,8 @@ import logging
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from ..config import Config
+
 SUPPORTED_MODELS = [ "Qwen/Qwen3-4B-Instruct-2507-FP8" ]
 SUPPORTED_DEVICES = [ "cpu", "cuda", "auto" ]
 
@@ -108,3 +110,62 @@ def unload_llm(model_name: str) -> None:
         del llm_instances[model_name]
     else:
         logger.debug(f"No HuggingFaceLLM instance found for model: {model_name}")
+
+def prompt_llm(prompt: list[dict],
+               config: Config | None = None) -> str:
+    """
+    Prompt the LLM.
+    
+    Args:
+        prompt (list[dict]): The prompt to send to the LLM.
+        config (Config): The configuration to use.
+        
+    Returns:
+        str: The response from the LLM.
+    """
+    if config is None:
+        config = Config.load()
+
+    logger.debug(f"Prompting LLM with: {prompt}")
+    # Get the LLM instance for the query expansion model
+    llm = get_llm(config.query_expansion_model, config.query_expansion_device)
+    # Apply the chat template to the prompt to expand it
+    text = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+    # Generate the response from the expanded prompt
+    return llm.generate(text)
+
+def expand_query(query_to_expand: str,
+                 extra_context: str,
+                 config: Config | None = None) -> str:
+    """
+    Expand a query using the LLM.
+    
+    Args:
+        query_to_expand (str): The query to expand.
+        extra_context (str): The extra context to use.
+        config (Config): The configuration to use.
+        
+    Returns:
+        str: The expanded query.
+    """
+    if config is None:
+        config = Config.load()
+    # Read the system prompt for the query expansion model
+    with open(config.query_expansion_system_prompt, "r") as f:
+        system_prompt = f.read()
+    # Create the user prompt and include the extra context and query to expand
+    user_prompt = f"""<context>
+    {extra_context}
+    </context>
+
+    <query>
+    {query_to_expand}
+    </query>"""
+
+    logger.debug(f"Expanding query: {query_to_expand}")
+    prompt = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    # Prompt the LLM with the expanded query
+    return prompt_llm(prompt, config)
