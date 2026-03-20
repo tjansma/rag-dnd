@@ -177,3 +177,4 @@
 
 - [ ] **`content_database` HACK in `config.py`**: Intermediate key met `del` — fragiel bij refactoring. Fix bij v0.3.
 - [ ] **`Collection.campaign_id`**: Non-nullable FK zonder campaign context — fix bij v0.3 multi-campaign.
+- [ ] **CLI Config Validatie**: De CLI geeft direct een foutmelding als `campaign` ontbreekt in config/env, blokkeert commando's als `rag-cli campaign list` en `create`. Fixen dat dit pas gecheckt wordt als de specifieke actie dit vereist.

@@ -22,12 +22,52 @@ _DEFAULTS = {
 class ClientConfig:
     """Configuration for the RAG clients."""
     base_url: str
-    transcript_database: str
-    logbook_path: str
-    summary_prompt_file: str
+    _transcript_database: str
+    _logbook_path: str
+    _summary_prompt_file: str
     query_expansion: bool
     campaign: str
     collection: str
+    config_dir: str = ""
+
+    @property
+    def transcript_database(self) -> str:
+        return self._resolve_path(self._transcript_database)
+
+    @property
+    def logbook_path(self) -> str:
+        return self._resolve_path(self._logbook_path)
+
+    @property
+    def summary_prompt_file(self) -> str:
+        return self._resolve_path(self._summary_prompt_file)
+
+    def _resolve_path(self, path: str) -> str:
+        """
+        Resolve a path to an absolute path.
+
+        Args:
+            path (str): The path to resolve.
+
+        Returns:
+            str: The resolved path.
+
+        Raises:
+            ValueError: If the campaign is not set and the path is not absolute.
+        """
+        if os.path.isabs(path):
+            resolved = path
+        else:
+            if not self.campaign:
+                raise ValueError("Campaign must be set to resolve paths.")
+            resolved = os.path.join(self.config_dir, "campaigns", self.campaign, path)
+            
+        # Ensure that the intermediate subdirectories always exist (for SQLite etc.)
+        parent_dir = os.path.dirname(resolved)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+            
+        return resolved
 
     @classmethod
     def load(cls, overrides: dict[str, Any] | None = None) -> Self:
@@ -47,7 +87,7 @@ class ClientConfig:
         # Load config file from user config directory
         # e.g. ~/.config/rag-dnd/config.toml on Linux or macOS
         # e.g. %APPDATA%/rag-dnd/config.toml on Windows
-        config_dir = user_config_dir("rag-dnd")
+        config_dir = user_config_dir("rag-dnd", appauthor=False)
         config_file = os.path.join(config_dir, "config.toml")
         if os.path.exists(config_file):
             with open(config_file, "rb") as f:
@@ -93,5 +133,10 @@ class ClientConfig:
             raise ValueError("No campaign configured. Set RAG_DND_CAMPAIGN "
                              f"environment variable or add 'campaign = "
                              f"<campaign>' to {config_file}.")
+
+        actual_config["_transcript_database"] = actual_config.pop("transcript_database")
+        actual_config["_logbook_path"] = actual_config.pop("logbook_path")
+        actual_config["_summary_prompt_file"] = actual_config.pop("summary_prompt_file")
+        actual_config["config_dir"] = config_dir
 
         return cls(**actual_config)  # type: ignore
