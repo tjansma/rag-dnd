@@ -27,7 +27,8 @@ _DEFAULTS = {
     "embeddings_provider": "HuggingFace",
     "embeddings_device": "cpu",
     "vector_database": Path("db/vector"),
-    "relevance_threshold": 0.5,
+    "relevance_threshold": 0.75,
+    "bm25_threshold": 2.0,
     "content_database_url": "sqlite:///db/relational/content.db",
     "log_level": "WARNING",
     "log_file": Path("log/app.log"),
@@ -138,6 +139,7 @@ class Config:
     embeddings_device: str
     vector_database: Path
     relevance_threshold: float
+    bm25_threshold: float
     content_database_url: str
     log_level: str
     log_file: Path
@@ -231,6 +233,9 @@ class Config:
         # ------------------------------------------------------------------
         _env_override(actual_config,
                       "relevance_threshold", "RAG_DND_RELEVANCE_THRESHOLD",
+                      float)
+        _env_override(actual_config,
+                      "bm25_threshold", "RAG_DND_BM25_THRESHOLD",
                       float)
         _env_override(actual_config,
                       "query_expansion_enabled", 

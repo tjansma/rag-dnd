@@ -1,5 +1,5 @@
-"""Coordinating the storage of documents, chunks, and sentences."""
 import logging
+import re
 from typing import Any, Mapping, cast
 
 import chromadb
@@ -57,6 +57,13 @@ class VectorStore:
 
         self._build_bm25_index()
 
+    def _tokenize(self, text: str) -> list[str]:
+        """Tokenize text by extracting words and removing stop words."""
+        # Extract word characters and numbers
+        # \b\w+\b handles punctuation like commas, dots, question marks, quotes
+        words = re.findall(r'\b\w+\b', text.lower())
+        return [w for w in words if w not in STOP_WORDS]
+
     def _build_bm25_index(self) -> None:
         """
         Load all documents from ChromaDB and build in-memory BM25 index.
@@ -85,8 +92,8 @@ class VectorStore:
                 else:
                     self.chunk_id_map.append(-1)
 
-        # Tokenize (simple split by whitespace)
-        tokenized_corpus = [doc.lower().split() for doc in self.doc_texts]
+        # Tokenize (extract words and strip noise)
+        tokenized_corpus = [self._tokenize(doc) for doc in self.doc_texts]
         self.bm25 = BM25Okapi(tokenized_corpus)
         logger.info(f"Built BM25 index with {len(self.doc_texts)} chunks.")
 
@@ -176,11 +183,14 @@ class VectorStore:
                 chunk_id_val = meta.get("chunk_id")
                 if chunk_id_val is not None:
                     chunk_id = int(cast(Any, chunk_id_val))
+                    logger.debug(f"Chunk ID: {chunk_id} - Semantic rank (low=good): {rank} - Semantic distance: {distance}")
                     if distance <= self.config.relevance_threshold:
                         if chunk_id not in semantic_ranks:
                             semantic_ranks[chunk_id] = rank
+                            logger.debug(f"Adding semantic chunk {chunk_id} with rank {rank}")
                             rank += 1
                         valid_semantic_chunk_ids.add(chunk_id)
+                        logger.debug(f"Adding semantic chunk {chunk_id} to valid semantic chunk ids")
                     else:
                         logger.debug(f"Skipping semantic chunk {chunk_id} with distance {distance:.4f} > {self.config.relevance_threshold}")
 
@@ -193,25 +203,30 @@ class VectorStore:
         # 2. Keyword search (BM25)
         keyword_ranks = {}
         if self.bm25:
-            # Strip stop words from the query! This prevents false positives on "wat is de".
-            tokenized_query = [w for w in query_text.lower().split() if w not in STOP_WORDS]
+            # Strip stop words and punctuation from the query!
+            tokenized_query = self._tokenize(query_text)
+            logger.debug(f"Tokenized query: {tokenized_query}")
             
             if tokenized_query:
                 # Get scores
                 scores = self.bm25.get_scores(tokenized_query)
+                logger.debug(f"BM25 scores: {scores}")
                 # Get top indices sorted by score descending
                 top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:fetch_k]
+                logger.debug(f"Top indices: {top_indices}")
 
                 rank = 0
                 for index in top_indices:
                     score = scores[index]
-                    # A BM25 score > 2.0 acts as a reliable baseline filter.
-                    if score > 3.0:       
+                    # A BM25 score > bm25_threshold acts as a reliable baseline filter.
+                    if score > self.config.bm25_threshold:       
                         if index < len(self.chunk_id_map):
                             chunk_id = self.chunk_id_map[index]
+                            logger.debug(f"Chunk ID: {chunk_id}")
                             if chunk_id != -1:
                                 if chunk_id not in keyword_ranks:
                                     keyword_ranks[chunk_id] = rank
+                                    logger.debug(f"Keyword rank (low=good): {rank}")
                                     rank += 1
 
         # 3. Reciprocal Rank Fusion (RRF)
@@ -229,21 +244,26 @@ class VectorStore:
         logger.debug(f"RRF Scoring (Top candidates):")
         for chunk_id in all_ids:
             semantic_rank = semantic_ranks.get(chunk_id, fetch_k)  # Default penalty
+            logger.debug(f"Semantic rank (low=good): {semantic_rank}")
             keyword_rank = keyword_ranks.get(chunk_id, fetch_k)
+            logger.debug(f"Keyword rank (low=good): {keyword_rank}")
             score = (1.0 / (semantic_rank + rrf_k)) + (1.0 / (keyword_rank + rrf_k))
             combined_scores[chunk_id] = score
+            logger.debug(f"Combined score (high=good): {score}")
 
             # DEBUG LOGGING: Show detail only for top contenders to keep logs readable
             if semantic_rank < k or keyword_rank < k:
-                logger.debug(f"  Chunk {chunk_id}: SemRank={semantic_rank}, KeyRank={keyword_rank} -> RRF={score:.6f}")
+                logger.debug(f"  Chunk {chunk_id}: SemRank(low=good)={semantic_rank}, KeyRank(low=good)={keyword_rank} -> RRF(high=good)={score:.6f}")
 
         # 4. Sort by RRF score descending
         sorted_results = sorted(combined_scores.items(),
                                 key=lambda x: x[1], 
                                 reverse=True)
+        logger.debug(f"Sorted results: {sorted_results}")
         
         # 5. Return top k chunk_ids
         top_ids = [chunk_id for chunk_id, score in sorted_results[:k]]
+        logger.debug(f"Top IDs: {top_ids}")
 
         logger.info(f"Hybrid search filtered down to {len(top_ids)} relevant final candidates.")
         return tuple(top_ids)
