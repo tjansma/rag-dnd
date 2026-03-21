@@ -38,6 +38,7 @@ _DEFAULTS = {
     "query_expansion_provider": "",
     "query_expansion_device": "cpu",
     "query_expansion_system_prompt": "",
+    "query_expansion_max_new_tokens": 512,
     "api_auto_reload": False,
 }
 
@@ -149,6 +150,7 @@ class Config:
     query_expansion_provider: str
     query_expansion_device: str
     query_expansion_system_prompt: str
+    query_expansion_max_new_tokens: int
     api_auto_reload: bool
 
     @classmethod
@@ -249,6 +251,9 @@ class Config:
                       "query_expansion_device", "RAG_DND_QUERY_EXPANSION_DEVICE")
         _env_override(actual_config,
                       "query_expansion_system_prompt", "RAG_DND_QUERY_EXPANSION_SYSTEM_PROMPT")
+        _env_override(actual_config,
+                      "query_expansion_max_new_tokens", "RAG_DND_QUERY_EXPANSION_MAX_NEW_TOKENS",
+                      int)
 
         # ------------------------------------------------------------------
         # Content database

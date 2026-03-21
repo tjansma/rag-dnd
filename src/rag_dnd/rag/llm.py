@@ -59,12 +59,15 @@ class HuggingFaceLLM:
         Returns:
             str: The generated response.
         """
+        config = Config.load()
+
         logger.debug(f"Generating response for prompt: {prompt} using model: {self.model_name} on device: {self.device} with tokenizer: {self.tokenizer}")
 
         logger.debug(f"Tokenizing prompt: {prompt}")
         inputs = self.tokenizer([prompt], return_tensors="pt").to(self.model.device)
         logger.debug(f"Generating response")
-        generated_ids = self.model.generate(**inputs, max_new_tokens=512)
+        generated_ids = self.model.generate(**inputs,
+                                            max_new_tokens=config.query_expansion_max_new_tokens)
         output_ids = generated_ids[0][len(inputs.input_ids[0]):].tolist()
         logger.debug(f"Decoding response")
         response = self.tokenizer.decode(output_ids, skip_special_tokens=True)
