@@ -189,8 +189,9 @@ def query(query: str,
         .options(joinedload(Chunk.parent_document))\
         .filter(Chunk.id.in_(relevant_chunk_ids))\
         .all()
-    
+    chunks.sort(key=lambda c: relevant_chunk_ids.index(c.id))    
     logger.info(f"Retrieved {len(chunks)} relevant chunks.")
+
 
     # Convert internal Chunk objects to cleaner QueryResult objects
     for chunk in chunks:
