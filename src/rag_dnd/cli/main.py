@@ -317,8 +317,10 @@ def campaign_list():
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
+import json
+
 @campaign_app.command("create")
-def campaign_create(full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: list[str] | None = None):
+def campaign_create(full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: str | None = typer.Option(None, help="JSON string representing extensions")):
     """
     Create a new campaign.
 
@@ -329,14 +331,20 @@ def campaign_create(full_name: str, short_name: str, roleplay_system: str, langu
         language (str): The language of the campaign.
         active_summary_file (str | None): The active summary file of the campaign.
         session_log_file (str | None): The session log file of the campaign.
-        extensions (list[str] | None): The extensions of the campaign.
+        extensions (str | None): Valid JSON string of extensions.
 
     Returns:
         None
     """
     try:
+        parsed_ext = None
+        if extensions:
+            parsed_ext = json.loads(extensions)
+            
         client = _get_client()
-        campaign = client.create_campaign(full_name, short_name, roleplay_system, language, active_summary_file, session_log_file, extensions)
+        campaign = client.create_campaign(full_name, short_name, roleplay_system, language, active_summary_file, session_log_file, parsed_ext)
         console.print(f"[bold green]Success![/bold green] Campaign created: {campaign.full_name}")
+    except json.JSONDecodeError:
+        console.print("[bold red]Error:[/bold red] Extensions must be a valid JSON string.")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")

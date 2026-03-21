@@ -2,7 +2,7 @@
 Common client for interacting with the RAG server.
 """
 import requests
-from typing import List
+from typing import List, Any
 from dataclasses import dataclass, asdict
 
 from .config import ClientConfig
@@ -31,7 +31,7 @@ class CampaignResponse:
     language: str
     active_summary_file: str | None
     session_log_file: str | None
-    extensions: list[str] | None
+    extensions: dict[str, Any] | None
 
 
 class RAGClient:
@@ -186,7 +186,7 @@ class RAGClient:
         data = response.json()
         return [CampaignResponse(**item) for item in data]
 
-    def create_campaign(self, full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: list[str] | None = None) -> CampaignResponse:
+    def create_campaign(self, full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: dict[str, Any] | None = None) -> CampaignResponse:
         """
         Create a new campaign.
         
