@@ -8,6 +8,7 @@ from typing import get_args,List, Literal
 import re
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
+import nltk
 
 from .models import Document, Chunk, Sentence
 
@@ -43,6 +44,14 @@ class Chunker:
                             Must be one of the known strategies.
         """
         logger.debug(f"Initializing Chunker with strategy: {strategy}")
+        
+        # Zorg dat NLTK eenmalig zijn model pakt zonder interactieve terminal balkjes
+        try:
+            nltk.data.find('tokenizers/punkt_tab')
+        except LookupError:
+            logger.info("Downloading NLTK punkt_tab tokenizer for first usage...")
+            nltk.download('punkt_tab', quiet=True)
+            
         valid_strategies = get_args(ChunkingStrategy)
         if strategy not in valid_strategies:
             logger.error(
@@ -102,9 +111,8 @@ class Chunker:
             logger.debug(f"Creating sentences from chunk: {chunk.id}")
             chunk.sentences = []
             
-            # Split text into sentences using regex
-            # Look for sentence endings (.!?) followed by whitespace
-            sentences_text = re.split(r'(?<=[.!?])\s+', chunk.text)
+            # Split text into sentences using NLTK NLP models
+            sentences_text = nltk.sent_tokenize(chunk.text, language="dutch")
             logger.debug(f"Split text into {len(sentences_text)} sentences.")
             
             for s_text in sentences_text:

@@ -179,10 +179,15 @@ def query_campaign(request: QueryRequest,
     """
     campaign, collection_name = campaign_and_collection
 
-    logger.debug(f"routes_v2.query_campaign: Entering {campaign_short_name=}, "
+    # Als de body param een specifieke collection_name meestuurt, overschrijft deze
+    # de default collection uit de dependency
+    if request.collection_name is not None:
+        collection_name = request.collection_name
+
+    logger.debug(f"routes_v2.query_campaign: Entering campaign_short_name={campaign.metadata.short_name}, "
                  f"{request=}")
-    
-    logger.debug(f"routes_v2.query_campaign: Querying campaign: {campaign_short_name} "
+                 
+    logger.debug(f"routes_v2.query_campaign: Querying campaign: {campaign.metadata.short_name} "
                  f"in collection: {collection_name}")
     try:
         result = campaign.query_rag(request.query, 
@@ -195,7 +200,7 @@ def query_campaign(request: QueryRequest,
         logger.error(f"routes_v2.query_campaign: Error querying campaign: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-    logger.info(f"routes_v2.query_campaign: Campaign queried: {campaign_short_name}")
+    logger.info(f"routes_v2.query_campaign: Campaign queried: {campaign.metadata.short_name}")
     return result
 
 
