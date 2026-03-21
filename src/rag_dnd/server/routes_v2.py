@@ -1,7 +1,7 @@
 """FastAPI routes for API requests."""
 import logging
 
-from fastapi import APIRouter, UploadFile, HTTPException
+from fastapi import APIRouter, UploadFile, HTTPException, Depends, Path
 
 from .. import rag
 from .upload import temporary_upload
@@ -12,6 +12,43 @@ logger = logging.getLogger(__name__)
 
 router_v2 = APIRouter(prefix="/v2")
 
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+
+def get_campaign_and_collection(
+        campaign_short_name: str = Path(
+            ..., 
+            description="The short name of the campaign"
+        ),
+        collection_name: str | None = None
+    ) -> tuple[rag.Campaign, str]:
+    """
+    Dependency to get the campaign object and routed collection string.
+
+    Args:
+        campaign_short_name (str): The short name of the campaign.
+        collection_name (str | None): The name of the collection. If None, 
+                                      the default collection name is used.
+
+    Returns:
+        tuple[rag.Campaign, str]: The campaign object and collection string.
+    """
+    try:
+        campaign = rag.Campaign.from_db_by_short_name(campaign_short_name)
+    except ValueError as e:
+        logger.error(f"Error getting campaign: {e}")
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    if collection_name is None:
+        collection_name = campaign.metadata.get_default_collection_name()
+
+    return campaign, collection_name
+
+
+# ---------------------------------------------------------------------------
+# Campaign routes
+# ---------------------------------------------------------------------------
 
 @router_v2.post("/campaigns", status_code=201)
 def create_campaign(request: CreateCampaignRequest) -> CampaignResponse:
@@ -67,8 +104,8 @@ def get_campaign_list() -> list[CampaignResponse]:
 
 @router_v2.put("/campaigns/{campaign_short_name}/documents", status_code=200)
 def update_document(file: UploadFile,
-                    campaign_short_name: str,
-                    collection_name: str | None = None):
+                    campaign_and_collection: tuple[rag.Campaign, str] = Depends(get_campaign_and_collection)
+                   ):
     """
     Store or update a document in the database.
     
@@ -79,14 +116,7 @@ def update_document(file: UploadFile,
         collection_name (str | None): The name of the collection to update
                                      the document in.
     """
-    try:
-        campaign = rag.Campaign.from_db_by_short_name(campaign_short_name)
-    except ValueError as e:
-        logger.error(f"Error getting campaign: {e}")
-        raise HTTPException(status_code=404, detail="Campaign not found")
-
-    if collection_name is None:
-        collection_name = campaign.metadata.get_default_collection_name()
+    campaign, collection_name = campaign_and_collection
 
     logger.debug(f"Updating document: {file.filename} in collection: {collection_name}")
 
@@ -108,7 +138,9 @@ def update_document(file: UploadFile,
 
 
 @router_v2.delete("/campaigns/{campaign_short_name}/documents/{filename}")
-def delete_document(campaign_short_name: str, filename: str, collection_name: str | None = None) -> None:
+def delete_document(filename: str,
+                    campaign_and_collection: tuple[rag.Campaign, str] = Depends(get_campaign_and_collection)
+                   ) -> None:
     """
     Delete a document from the database.
     
@@ -119,15 +151,7 @@ def delete_document(campaign_short_name: str, filename: str, collection_name: st
         collection_name (str | None): The name of the collection to delete
                                      the document from.
     """
-    logger.debug(f"routes_v2.delete_document: Entering {campaign_short_name=}, {filename=}, {collection_name=}")
-    try:
-        campaign = rag.Campaign.from_db_by_short_name(campaign_short_name)
-    except ValueError as e:
-        logger.error(f"routes_v2.delete_document: Error getting campaign: {e}")
-        raise HTTPException(status_code=404, detail="Campaign not found")
-
-    if collection_name is None:
-        collection_name = campaign.metadata.get_default_collection_name()
+    campaign, collection_name = campaign_and_collection
 
     logger.debug(f"routes_v2.delete_document: Deleting document: {filename} from collection: {collection_name}")
     try:
@@ -144,7 +168,8 @@ def delete_document(campaign_short_name: str, filename: str, collection_name: st
 
 @router_v2.post("/campaigns/{campaign_short_name}/query")
 def query_campaign(request: QueryRequest,
-                   campaign_short_name: str) -> list[rag.QueryResult]:
+                   campaign_and_collection: tuple[rag.Campaign, str] = Depends(get_campaign_and_collection)
+                   ) -> list[rag.QueryResult]:
     """
     Query the campaign RAG system.
     
@@ -152,20 +177,11 @@ def query_campaign(request: QueryRequest,
         request (QueryRequest): The query to ask.
         campaign_short_name (str): The short name of the campaign to query.
     """
+    campaign, collection_name = campaign_and_collection
+
     logger.debug(f"routes_v2.query_campaign: Entering {campaign_short_name=}, "
                  f"{request=}")
     
-    try:
-        campaign = rag.Campaign.from_db_by_short_name(campaign_short_name)
-    except ValueError as e:
-        logger.error(f"routes_v2.query_campaign: Error getting campaign: {e}")
-        raise HTTPException(status_code=404, detail="Campaign not found")
-
-    if request.collection_name is None:
-        collection_name = campaign.metadata.get_default_collection_name()
-    else:
-        collection_name = request.collection_name
-
     logger.debug(f"routes_v2.query_campaign: Querying campaign: {campaign_short_name} "
                  f"in collection: {collection_name}")
     try:
@@ -182,6 +198,10 @@ def query_campaign(request: QueryRequest,
     logger.info(f"routes_v2.query_campaign: Campaign queried: {campaign_short_name}")
     return result
 
+
+# ---------------------------------------------------------------------------
+# LLM routes
+# ---------------------------------------------------------------------------
 
 @router_v2.post("/llm/generate")
 def llm_generate(prompt: list[LLMMessage]) -> str:
