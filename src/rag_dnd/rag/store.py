@@ -173,7 +173,12 @@ class VectorStore:
         semantic_ranks = {}
         valid_semantic_chunk_ids = set()
         
-        # Parse result: metadatas and distances
+        # Process ChromaDB semantic search results:
+        # 1. Extract metadatas (chunk_id) and mathematical distances.
+        # 2. Filter out results that are too far away (distance > relevance_threshold).
+        # 3. Assign a rank (0=best, 1=second best) to each unique chunk for RRF scoring later.
+        # Note: Because ChromaDB embeds sliding windows of sentences, multiple results might 
+        # belong to the exact same chunk_id. We only give the chunk the rank of its BEST matching sentence.
         if semantic_results["metadatas"] and semantic_results["distances"]:
             metadatas = semantic_results["metadatas"][0]
             distances = semantic_results["distances"][0]
@@ -184,21 +189,23 @@ class VectorStore:
                 if chunk_id_val is not None:
                     chunk_id = int(cast(Any, chunk_id_val))
                     logger.debug(f"Chunk ID: {chunk_id} - Semantic rank (low=good): {rank} - Semantic distance: {distance}")
+                    
+                    # Security valve: Ignore extremely poor matches
                     if distance <= self.config.relevance_threshold:
+                        # Only assign rank if this is the first (and therefore best) time we see this chunk
                         if chunk_id not in semantic_ranks:
                             semantic_ranks[chunk_id] = rank
                             logger.debug(f"Adding semantic chunk {chunk_id} with rank {rank}")
                             rank += 1
+                            
+                        # Keep track of which chunks survived the threshold for keyword fallback 
                         valid_semantic_chunk_ids.add(chunk_id)
                         logger.debug(f"Adding semantic chunk {chunk_id} to valid semantic chunk ids")
                     else:
                         logger.debug(f"Skipping semantic chunk {chunk_id} with distance {distance:.4f} > {self.config.relevance_threshold}")
 
-        # If absolutely no semantic candidates passed the threshold, we return empty early.
-        # This prevents returning entirely irrelevant results based solely on noise in BM25.
         if not valid_semantic_chunk_ids:
             logger.info(f"No semantic results passed the relevance threshold ({self.config.relevance_threshold}).")
-            # We DONT return early anymore! BM25 might still find a strong keyword match.
 
         # 2. Keyword search (BM25)
         keyword_ranks = {}
