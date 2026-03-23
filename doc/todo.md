@@ -92,9 +92,35 @@
   - [x] `RAGClient`: v2 methods + `list_campaigns()` + `create_campaign()`.
   - [x] CLI: `--campaign` flag, lazy init, `campaign list/create` commands.
   - [x] Hooks & MCP: campaign-aware via shared `ClientConfig` (no code changes needed).
-- [x] **Deferred to future version**
-  - [x] Data separation: Move user data to `~/.rag_dnd/campaigns/`.
-  - [ ] `PromptEngine`: Server-side system prompt rendering.
+- [x] Data separation: Move user data to `~/.rag_dnd/campaigns/`.
+- [ ] **Prompt Engine & Structured Data Architecture**
+  - [x] Functional requirements (`doc/prompt_engine/prompt_engine_requirements.md`)
+  - [x] Detailed Character Specification (`doc/prompt_engine/character_system_specification.md`)
+  - [x] Consolidated Design Document (`doc/prompt_engine/character_system_detailed_design.md`)
+
+## v0.4: Structured D&D Data (Phase 1) - In Progress
+
+- [ ] **Database Models**
+  - [ ] Implement `Character` model (Fixed columns + JSON data).
+  - [ ] Implement `CampaignState` model.
+- [ ] **API v2 Expansion**
+  - [ ] CRUD routes for `/v2/campaigns/{short_name}/characters`.
+  - [ ] Routes for `/v2/campaigns/{short_name}/state`.
+- [ ] **CLI Management**
+  - [ ] `rag-cli character` command set.
+  - [ ] `rag-cli state` command set.
+
+## v0.5: Prompt Engine & System Handlers
+
+- [ ] **Prompt Engine Core**
+  - [ ] Jinja2 template loading (Hierarchical).
+  - [ ] Variable injection (`{{ lore }}`, `{{ character_sheets }}`).
+- [ ] **DnD5e System Handler**
+  - [ ] Derived stats calculation logic.
+  - [ ] Persona AI-Triggers.
+- [ ] **Clients Integration**
+  - [ ] Update Gemini CLI Hook to use `/prompt/render`.
+  - [ ] Update MCP Server with `get_persona_prompt` tool.
 
 ## v1.0: Enterprise Readiness (Roadmap)
 

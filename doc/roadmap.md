@@ -1,6 +1,6 @@
 # Project Roadmap
 
-This document outlines the vision and future features for the `rag-dnd` project. Unlike `todo.md` (which tracks current generic tasks), this roadmap focuses on capability expansion.
+This document outlines the vision and future features for the `rag-dnd` project.
 
 ## Completed (v0.1 - v0.3)
 
@@ -11,77 +11,52 @@ This document outlines the vision and future features for the `rag-dnd` project.
 - [x] **Multi-Campaign Support**: Campaign CRUD, scoped storage & querying.
 - [x] **Integrations**: Gemini CLI Hook, MCP Server, Admin CLI.
 - [x] **Data & Config Separation**: Campaign data stored in user profile (`~/.rag_dnd/campaigns/`).
-- [x] **Lazy CLI Configuration**: Supports global commands without prior campaign setup.
-- [x] **Interactive Campaign Setup**: `campaign create` prompts for activation and auto-provisions directories.
 
-## 1. Automation & Workflow
+---
 
-## 1. Multi-Query Decomposition (v1.x)
+## 1. Structured D&D Data & Prompt Engine (v0.4 - v0.5)
 
-- Upgrade Query Expansion to generate _multiple_ specific sub-queries from one user prompt.
-- Perform parallel vector searches for each sub-query.
-- De-duplicate and re-rank results to cover multiple semantic aspects (e.g., "visuals" vs "dialogue").
+The goal is to move from "Generic RAG" to a "Smart D&D Assistant" by adding mechanical awareness and persona consistency.
+
+- [ ] **Phase 1: Structured Data (RDBMS)**
+  - Models for Characters (PC/NPC/Monster) and Campaign State (Location/Date).
+  - Implementation of a flexible JSON-blob for system-agnostic stats.
+  - CRUD API and CLI for character management.
+- [ ] **Phase 2: Prompt Engine & Handlers**
+  - "The Orchestrator": A layer that combines Lore (RAG) and Stats (Structured Data).
+  - **System Handlers**: Modular logic for calculating derived stats (e.g., D&D 5e modifiers).
+  - **AI Triggers**: Dynamic persona shifts based on game state (e.g., "be aggressive if HP < 25%").
 
 ## 2. Automation & Workflow
 
 - [ ] **Automatic Session Transcription**
   - Hook into Gemini CLI to log every prompt/response pair to a raw transcript file during gameplay.
 - [ ] **Intelligent Summarization Pipeline**
-  - Workflow to read raw session transcripts.
   - Use LLM to summarize gameplay into narrative logbook entries.
   - Automatically index these entries into the RAG database.
-  - Implement a Publisher/Subscriber architecture to decouple agent loop from RAG hooks.
-  - Allow multiple independent agents/services to subscribe to game events.
-
-- [ ] **Multi-Query Decomposition (v1.x)**
-  - Upgrade Query Expansion to generate _multiple_ specific sub-queries from one user prompt.
-  - Perform parallel vector searches for each sub-query.
-  - De-duplicate and re-rank results to cover multiple semantic aspects (e.g., "visuals" vs "dialogue").
-
-## 2. Multi-Campaign Architecture (v0.3 — Completed)
-
-- [x] **Campaign CRUD** — `Campaign.create()`, `Campaign.list_all()`, `from_db_by_short_name()`.
-- [x] **v2 RESTful API** — Campaign-scoped endpoints (`POST/GET /v2/campaigns`, `PUT/DELETE/POST .../documents`).
-- [x] **Client Config** — `campaign` field in TOML, env var `RAG_DND_CAMPAIGN`, CLI `--campaign` flag.
-- [x] **Document Model Refactor** — Removed `file_name`, chunker accepts `source_path: Path`.
-- [x] **ChromaDB Naming** — `_-_` separator for collection names.
-- [ ] **Data & Config Separation** (Deferred)
-  - Store campaign data in user profile (`~/.rag_dnd/campaigns/`).
-  - Separate application logic from content.
-- [ ] **Prompt Engine** (Deferred)
-  - Server-side rendering of System Prompts.
-  - Dynamic injection of Character Sheets and Lore into context window.
+- [ ] **Pub/Sub Architecture**
+  - Implement a Publisher/Subscriber system to allow multiple independent agents/services to subscribe to game events.
 
 ## 3. Content Ingestion (PDF & Rules)
 
 - [ ] **Advanced PDF Processing**
   - Smart chunking for D&D rulebooks and campaign modules.
-  - specialized handling for:
-    - Multi-column layouts
-    - Stat blocks and Tables
-    - Images/Maps
-  - Ingestion pipeline to add these reference materials to the RAG.
+  - Specialized handling for multi-column layouts, stat blocks, and tables.
+- [ ] **Multi-Query Decomposition (v1.x)**
+  - Upgrade Query Expansion to generate _multiple_ specific sub-queries from one user prompt to cover more semantic aspects.
 
-## 4. Content Ingestion (PDF & Rules)
-
-## 7. Advanced AI Adaptation (Future)
+## 4. Advanced AI Adaptation (Future)
 
 - [ ] **Campaign-Specific LoRA Adapters**
-  - Train lightweight LoRA adapters on campaign logs (Domain Adaptation).
-  - Use for **Query Enhancement**: Better translation of vague player intent to specific RAG queries.
-  - **Per-Campaign Loading**: Hot-swap adapters based on the active campaign context.
-
-## 8. Experimental / Visionary (Far Future)
-
+  - Train lightweight LoRA adapters on campaign logs for better query enhancement and persona mimicry.
 - [ ] **GraphRAG (Knowledge Graph Integration)**
-  - Augment vector search with a graph database (e.g., NetworkX/Neo4j).
-  - Extract entities and relations (`(Jams)-[KNOWS]->(Nezznar)`) during ingestion.
-  - Enable multi-hop reasoning questions ("Who knows someone that hates the Zhentarim?").
+  - Augment vector search with a graph database to enable multi-hop reasoning (e.g., "Who knows someone that hates the Zhentarim?").
+
+---
+
+## 5. Experimental / Visionary (Far Future)
+
 - [ ] **Voice Mode (Speech-to-Speech)**
-  - **Input**: Real-time transcription using local Whisper.
-  - **Output**: Low-latency TTS (e.g., XTTS/Piper) for the DM's voice.
-  - Enable hands-free roleplay.
+  - Real-time transcription and low-latency TTS for a hands-free DM experience.
 - [ ] **Live DM HUD (Heads-Up Display)**
-  - Real-time dashboard that "listens" to the game state.
-  - Proactively displays relevant statblocks, maps, and inventory without explicit queries.
-  - "Zero-click" intelligence.
+  - Real-time dashboard that proactively displays relevant statblocks, maps, and inventory based on the current context.
