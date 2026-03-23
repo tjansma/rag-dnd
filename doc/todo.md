@@ -92,8 +92,8 @@
   - [x] `RAGClient`: v2 methods + `list_campaigns()` + `create_campaign()`.
   - [x] CLI: `--campaign` flag, lazy init, `campaign list/create` commands.
   - [x] Hooks & MCP: campaign-aware via shared `ClientConfig` (no code changes needed).
-- [ ] **Deferred to future version**
-  - [ ] Data separation: Move user data to `~/.rag_dnd/campaigns/`.
+- [x] **Deferred to future version**
+  - [x] Data separation: Move user data to `~/.rag_dnd/campaigns/`.
   - [ ] `PromptEngine`: Server-side system prompt rendering.
 
 ## v1.0: Enterprise Readiness (Roadmap)
@@ -175,6 +175,6 @@
 
 ## Technical Debt (Remaining)
 
-- [ ] **`content_database` HACK in `config.py`**: Intermediate key met `del` — fragiel bij refactoring. Fix bij v0.3.
-- [ ] **`Collection.campaign_id`**: Non-nullable FK zonder campaign context — fix bij v0.3 multi-campaign.
-- [ ] **CLI Config Validatie**: De CLI geeft direct een foutmelding als `campaign` ontbreekt in config/env, blokkeert commando's als `rag-cli campaign list` en `create`. Fixen dat dit pas gecheckt wordt als de specifieke actie dit vereist.
+- [x] **`content_database` HACK in `config.py`**: Intermediate key met `del` — fragiel bij refactoring. Fix bij v0.3.
+- [x] **`Collection.campaign_id`**: Non-nullable FK zonder campaign context — fix bij v0.3 multi-campaign.
+- [x] **CLI Config Validatie**: De CLI geeft direct een foutmelding als `campaign` ontbreekt in config/env, blokkeert commando's als `rag-cli campaign list` en `create`. Fixen dat dit pas gecheckt wordt als de specifieke actie dit vereist.

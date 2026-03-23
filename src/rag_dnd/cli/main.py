@@ -314,7 +314,10 @@ def campaign_list():
             table.add_row(str(campaign.id), campaign.full_name, campaign.short_name)
             
         console.print(table)
-        console.print(f"\n[bold]Active campaign:[/bold] [green]{client.config.campaign}[/green]")
+        try:
+            console.print(f"\n[bold]Active campaign:[/bold] [green]{client.config.campaign}[/green]")
+        except ValueError:
+            console.print(f"\n[bold]Active campaign:[/bold] [red]None[/red]")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
