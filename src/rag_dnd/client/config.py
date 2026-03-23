@@ -1,10 +1,10 @@
 """Configuration for the RAG clients."""
-from typing import Self
-from typing import Any
 from dataclasses import dataclass
 import os
-from platformdirs import user_config_dir
+from pathlib import Path
+from typing import Self, Any
 
+from platformdirs import user_config_dir
 import tomllib
 import tomlkit
 
@@ -26,7 +26,7 @@ class ClientConfig:
     _logbook_path: str
     _summary_prompt_file: str
     query_expansion: bool
-    campaign: str
+    _campaign: str
     collection: str
     config_dir: str = ""
 
@@ -41,6 +41,14 @@ class ClientConfig:
     @property
     def summary_prompt_file(self) -> str:
         return self._resolve_path(self._summary_prompt_file)
+
+    @property
+    def campaign(self) -> str:
+        if not self._campaign:
+            raise ValueError("No campaign configured. Set RAG_DND_CAMPAIGN "
+                             f"environment variable or add 'campaign = "
+                             f"<campaign>' to {self.config_dir}/config.toml.")
+        return self._campaign
 
     def _resolve_path(self, path: str) -> str:
         """
@@ -58,8 +66,6 @@ class ClientConfig:
         if os.path.isabs(path):
             resolved = path
         else:
-            if not self.campaign:
-                raise ValueError("Campaign must be set to resolve paths.")
             resolved = os.path.join(self.config_dir, "campaigns", self.campaign, path)
             
         # Ensure that the intermediate subdirectories always exist (for SQLite etc.)
@@ -129,14 +135,25 @@ class ClientConfig:
         if overrides:
             actual_config.update(overrides)
 
-        if not actual_config["campaign"]:
-            raise ValueError("No campaign configured. Set RAG_DND_CAMPAIGN "
-                             f"environment variable or add 'campaign = "
-                             f"<campaign>' to {config_file}.")
-
+        # Remove the values read from the config file that are not part of the
+        # ClientConfig dataclass and replace them with the private attributes
+        # containing the resolved absolute paths.
         actual_config["_transcript_database"] = actual_config.pop("transcript_database")
         actual_config["_logbook_path"] = actual_config.pop("logbook_path")
         actual_config["_summary_prompt_file"] = actual_config.pop("summary_prompt_file")
+        if "campaign" in actual_config:
+            actual_config["_campaign"] = actual_config.pop("campaign")
         actual_config["config_dir"] = config_dir
 
         return cls(**actual_config)  # type: ignore
+
+    def save_active_campaign(self):
+        """
+        Save the active campaign to the config file.
+        """
+        config_file = Path(self.config_dir) / "config.toml"
+        with open(config_file, "r", encoding="utf-8") as f:
+            doc = tomlkit.parse(f.read())
+        doc["campaign"] = self.campaign
+        with open(config_file, "w", encoding="utf-8") as f:
+            f.write(tomlkit.dumps(doc))

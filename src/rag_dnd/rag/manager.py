@@ -233,10 +233,9 @@ def delete_document(collection: Collection,
         custom_filename = os.path.basename(filename)
 
     # Query the document by custom_filename
-    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
-    if document is None:
-        logger.error(f"Delete failed: Document {custom_filename} not found in DB.")
-        raise DocumentNotFoundError(f"Delete failed: Document {custom_filename} not found in DB.")
+    document = Document.load_by_custom_filename(custom_filename,
+                                                collection.id,
+                                                session)
 
     # 1. Clean up Vector Store (Child) first
     vector_store = get_vector_store(collection.name, config)
@@ -293,11 +292,10 @@ def update_document(collection: Collection,
         custom_filename = file.name
 
     # Check if the document exists
-    document = session.query(Document).filter_by(custom_filename=custom_filename).first()
-    if document is None:
-        logger.error(f"Document {custom_filename} not found in database.")
-        raise DocumentNotFoundError(f"Document {custom_filename} not found in database.")
-
+    document = Document.load_by_custom_filename(custom_filename,
+                                                collection.id,
+                                                session)
+    
     # Calculate file hash to check if the file has changed
     with open(file, "rb") as f:
         file_hash = sha256(f.read()).hexdigest()

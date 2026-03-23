@@ -44,9 +44,7 @@ class RAGClient:
         Args:
             config: The configuration for the RAG client.
         """
-        self.base_url = config.base_url.rstrip("/")
-        self.campaign = config.campaign
-        self.collection = config.collection
+        self.config = config
         
     def store_document(self, file_path: str, collection: str | None = None) -> None:
         """
@@ -62,9 +60,9 @@ class RAGClient:
             requests.HTTPError: If the request fails.
         """        
         if collection is None:
-            collection = self.collection
+            collection = self.config.collection
 
-        url = f"{self.base_url}/v2/campaigns/{self.campaign}/documents"
+        url = f"{self.config.base_url}/v2/campaigns/{self.config.campaign}/documents"
         
         params = {}
         if collection:
@@ -89,7 +87,7 @@ class RAGClient:
         Raises:
             requests.HTTPError: If the request fails.
         """
-        url = f"{self.base_url}/v2/campaigns/{self.campaign}/documents/{filename}"
+        url = f"{self.config.base_url}/v2/campaigns/{self.config.campaign}/documents/{filename}"
         
         params = {}
         if collection:
@@ -115,7 +113,7 @@ class RAGClient:
         Raises:
             requests.HTTPError: If the request fails.
         """
-        url = f"{self.base_url}/v2/campaigns/{self.campaign}/query"
+        url = f"{self.config.base_url}/v2/campaigns/{self.config.campaign}/query"
         query_request = QueryRequest(query=query_text,
                                      max_results=limit,
                                      collection_name=collection)
@@ -138,7 +136,7 @@ class RAGClient:
         Raises:
             requests.HTTPError: If the request fails.
         """
-        url = f"{self.base_url}/v2/llm/generate"
+        url = f"{self.config.base_url}/v2/llm/generate"
         payload = {"prompt": [{"role": "user", "content": query_text}]}
         response = requests.post(url, json=payload)
         response.raise_for_status()
@@ -156,7 +154,7 @@ class RAGClient:
         Returns:
             str | None: The expanded query, or None if not found.
         """
-        url = f"{self.base_url}/v2/llm/expand_query"
+        url = f"{self.config.base_url}/v2/llm/expand_query"
         session_id = get_or_create_session(session_guid)
         last_turn = get_last_turn(session_id)
         if last_turn is None:
@@ -179,7 +177,7 @@ class RAGClient:
         Raises:
             requests.HTTPError: If the request fails.
         """
-        url = f"{self.base_url}/v2/campaigns"
+        url = f"{self.config.base_url}/v2/campaigns"
         response = requests.get(url)
         response.raise_for_status()
         
@@ -205,7 +203,7 @@ class RAGClient:
         Raises:
             requests.HTTPError: If the request fails.
         """
-        url = f"{self.base_url}/v2/campaigns"
+        url = f"{self.config.base_url}/v2/campaigns"
         payload = {
             "full_name": full_name,
             "short_name": short_name,
@@ -219,3 +217,20 @@ class RAGClient:
         response.raise_for_status()
         
         return CampaignResponse(**response.json())
+
+    def create_campaign_directory_structure(self) -> bool:
+        """
+        Create directory structure for campaign.
+        
+        Returns:
+            bool: True if the directory structure was created successfully, False otherwise.
+        """
+        try:
+            # By requesting these 3 properties, 'ClientConfig._resolve_path()' is called
+            # under the hood, which safely creates the correct parent folders!
+            _ = self.config.transcript_database
+            _ = self.config.logbook_path
+            _ = self.config.summary_prompt_file
+            return True
+        except OSError:
+            return False

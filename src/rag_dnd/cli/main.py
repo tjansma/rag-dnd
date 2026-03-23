@@ -314,6 +314,7 @@ def campaign_list():
             table.add_row(str(campaign.id), campaign.full_name, campaign.short_name)
             
         console.print(table)
+        console.print(f"\n[bold]Active campaign:[/bold] [green]{client.config.campaign}[/green]")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
 
@@ -344,7 +345,43 @@ def campaign_create(full_name: str, short_name: str, roleplay_system: str, langu
         client = _get_client()
         campaign = client.create_campaign(full_name, short_name, roleplay_system, language, active_summary_file, session_log_file, parsed_ext)
         console.print(f"[bold green]Success![/bold green] Campaign created: {campaign.full_name}")
+        response = console.input(f"[yellow]Write active configuration to '{client.config.config_dir}/config.toml' to make this campaign active (y/n)?[/yellow]")
+        if response.lower() == "y":
+            client.config._campaign = short_name
+            client.config.save_active_campaign()
+            console.print(f"[bold green]Success![/bold green] Campaign set as active.")
+
+            response = console.input(f"[yellow]Create directory structure for campaign (y/n)?[/yellow]")
+            if response.lower() == "y":
+                if client.create_campaign_directory_structure():
+                    console.print(f"[bold green]Success![/bold green] Directory structure created.")
+                else:
+                    console.print(f"[bold red]Error:[/bold red] Could not create directory structure.")
     except json.JSONDecodeError:
         console.print("[bold red]Error:[/bold red] Extensions must be a valid JSON string.")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@campaign_app.command("activate")
+def campaign_activate(short_name: str):
+    """
+    Activate a campaign.
+
+    Args:
+        short_name (str): The short name of the campaign.
+
+    Returns:
+        None
+    """
+    try:
+        client = _get_client()
+        campaigns = client.list_campaigns()
+        if short_name not in [c.short_name for c in campaigns]:
+            console.print(f"[bold red]Error:[/bold red] Campaign {short_name} not found.")
+            return
+
+        client.config._campaign = short_name
+        client.config.save_active_campaign()
+        console.print(f"[bold green]Success![/bold green] Campaign set as active.")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")

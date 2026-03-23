@@ -1,5 +1,6 @@
 """Models for the database."""
 from __future__ import annotations
+import logging
 from typing import Optional, Any, Self
 from dataclasses import dataclass
 
@@ -8,6 +9,9 @@ import sqlalchemy.orm as orm
 
 from ..config import Config
 from .database import get_session
+from .exceptions import DocumentNotFoundError
+
+logger = logging.getLogger(__name__)
 
 class ORMBase(orm.DeclarativeBase):
     """Base class for all ORM models."""
@@ -51,6 +55,25 @@ class Document(ORMBase):
         cascade="all, delete-orphan"
     )
 
+    @classmethod
+    def load_by_custom_filename(cls, custom_filename: str, collection_id: int, session: orm.Session) -> Self:
+        """
+        Load document by custom filename.
+
+        Args:
+            custom_filename (str): The custom filename of the document to load.
+            collection_id (int): The id of the collection to load the document from.
+            session (orm.Session): The session to use.
+
+        Returns:
+            Self: The document.
+        """
+        document = session.query(cls).filter_by(custom_filename=custom_filename,
+                                                collection_id=collection_id).first()
+        if document is None:
+            logger.error(f"Document {custom_filename} not found in database.")
+            raise DocumentNotFoundError(f"Document {custom_filename} not found in database.")
+        return document
 
 @dataclass
 class Sentence:
@@ -72,7 +95,7 @@ class Chunk(ORMBase):
     document_id: orm.Mapped[int] = \
         orm.mapped_column(sa.Integer, sa.ForeignKey("documents.id"))
     text: orm.Mapped[str] = orm.mapped_column(sa.String)
-    chunk_hash: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
+    chunk_hash: orm.Mapped[str] = orm.mapped_column(sa.String)
     
     parent_document: orm.Mapped["Document"] = \
         orm.relationship(back_populates="chunks")
