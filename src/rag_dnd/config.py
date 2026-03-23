@@ -40,6 +40,7 @@ _DEFAULTS = {
     "query_expansion_system_prompt": "",
     "query_expansion_max_new_tokens": 512,
     "api_auto_reload": False,
+    "auto_update_ai_models": True,
 }
 
 def _env_override(config: dict, key: str, env_var: str, cast=str) -> bool:
@@ -152,6 +153,7 @@ class Config:
     query_expansion_system_prompt: str
     query_expansion_max_new_tokens: int
     api_auto_reload: bool
+    auto_update_ai_models: bool
 
     @classmethod
     def load(cls, overrides: dict[str, Any] | None = None) -> Self:
@@ -200,6 +202,12 @@ class Config:
                              Path):
             actual_config["data_dir"] = _get_default_data_dir()
         
+        # ------------------------------------------------------------------
+        # Global settings
+        # ------------------------------------------------------------------
+        _env_override(actual_config,
+                      "auto_update_ai_models", "RAG_DND_AUTO_UPDATE_AI_MODELS", bool)
+
         # ------------------------------------------------------------------
         # Per-campaign data storage locations
         # ------------------------------------------------------------------
@@ -278,6 +286,16 @@ class Config:
         # ------------------------------------------------------------------
         if overrides:
             actual_config.update(overrides)
+
+        # ------------------------------------------------------------------
+        # Apply global settings to environment
+        # ------------------------------------------------------------------
+        if actual_config["auto_update_ai_models"]:
+            os.environ.pop("HF_HUB_OFFLINE", None)
+            os.environ.pop("TRANSFORMERS_OFFLINE", None)
+        else:
+            os.environ["HF_HUB_OFFLINE"] = "1"
+            os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
         # ------------------------------------------------------------------
         # Store and return the configuration

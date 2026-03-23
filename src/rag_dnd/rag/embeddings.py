@@ -53,7 +53,9 @@ class Embedding:
             self.embeddings_device = "cpu"
         logger.info(f"Using device: {self.embeddings_device}")
         
-        model_kwargs: dict[str, Any] = {}
+        model_kwargs: dict[str, Any] = {
+            "local_files_only": not config.auto_update_ai_models
+        }
         encode_kwargs: dict[str, Any] = {}
         self.passage_prefix = ""
         self.query_prefix = ""
@@ -63,6 +65,9 @@ class Embedding:
             model_kwargs["device"] = self.embeddings_device
             encode_kwargs["normalize_embeddings"] = True
         elif "jina" in self.embeddings_model.lower():
+            model_kwargs["tokenizer_kwargs"] = {
+                "fix_mistral_regex": True
+            }
             model_kwargs["device"] = self.embeddings_device
             model_kwargs["trust_remote_code"] = True
             encode_kwargs["normalize_embeddings"] = True

@@ -25,6 +25,8 @@ class HuggingFaceLLM:
         Returns:
             None
         """
+        config = Config.load()
+
         logger.debug(f"Initializing HuggingFaceLLM with model: {model_name} on device: {device}")
         if model_name not in SUPPORTED_MODELS:
             logger.error(f"Model {model_name} is not supported. Supported models: {SUPPORTED_MODELS}")
@@ -38,13 +40,15 @@ class HuggingFaceLLM:
         self.device = device
         
         logger.debug(f"Loading tokenizer for model: {model_name}")
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, 
+                                                       local_files_only=not config.auto_update_ai_models)
         
         logger.debug(f"Loading model for model: {model_name}")
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             dtype="auto",
-            device_map=self.device)
+            device_map=self.device,
+            local_files_only=not config.auto_update_ai_models)
         
         self.running_on_device = next(self.model.parameters()).device
         logger.info(f"Initialized HuggingFaceLLM with model: {self.model_name} on device: {self.running_on_device}")
