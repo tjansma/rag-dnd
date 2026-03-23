@@ -11,17 +11,32 @@ if (!(Get-Command uv -ErrorAction SilentlyContinue)) {
     Invoke-RestMethod -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
     # Add to current path for immediate use
     $env:PATH += ";$HOME\.local\bin"
-} else {
+}
+else {
     Write-Host "uv is already installed." -ForegroundColor Green
 }
 
 # 2. Check for node/npm (needed for Gemini CLI)
 if (!(Get-Command npm -ErrorAction SilentlyContinue)) {
-    Write-Host "Warning: npm not found. Gemini CLI installation might fail." -ForegroundColor Red
-    Write-Host "Please install Node.js (https://nodejs.org/) and run this script again." -ForegroundColor Yellow
+    Write-Host "npm not found. Installing npm..." -ForegroundColor Yellow
+    winget install --disable-interactivity --accept-source-agreements --accept-package-agreements OpenJS.NodeJS
+    # Add to current path for immediate use
+    $env:PATH += ";c:\Program Files\nodejs"
+}
+else {
+    Write-Host "npm is already installed." -ForegroundColor Green
 }
 
-# 3. Run the main install script via uv
+# 3. Check for Gemini CLI
+if (!(Get-Command gemini -ErrorAction SilentlyContinue)) {
+    Write-Host "Gemini CLI not found. Installing Gemini CLI..." -ForegroundColor Yellow
+    npm install -g @google/gemini-cli
+}
+else {
+    Write-Host "Gemini CLI is already installed." -ForegroundColor Green
+}
+
+# 4. Run the main install script via uv
 Write-Host "Running project setup with uv..." -ForegroundColor Cyan
 uv run scripts/install.py
 
