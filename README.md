@@ -22,18 +22,27 @@ The system uses a **Client-Server** model to allow concurrent access to the know
 1.  **Backend (FastAPI):** Single "Gatekeeper" process managing SQLite/ChromaDB connections.
 2.  **Clients:** Admin CLI, Gemini Hook, and MCP Server all communicate via the REST API.
 
-## 🛠️ Installation
+## 🚀 Quick Start / Installation
 
-This project uses `uv` for dependency management and requires an NVIDIA GPU for best performance.
+The simplest way to get started is to use the provided setup scripts, which automate dependency installation (via `uv`) and Gemini CLI configuration.
 
-```bash
-# 1. Clone the repository
-git clone <repo-url>
-cd rag-dnd
-
-# 2. Sync dependencies (Autodetects CUDA)
-uv sync
+### Windows (PowerShell)
+```powershell
+.\setup.ps1
 ```
+
+### Linux / macOS (Bash)
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+These scripts will:
+1.  Install **`uv`** if missing.
+2.  Sync all Python dependencies.
+3.  Install **Gemini CLI** (`@google/gemini-cli`) if missing.
+4.  Configure hooks and MCP to work with your local project path.
+5.  Create **`rag-gemini.bat`** (Windows) and **`rag-gemini.sh`** (Linux) to start Gemini CLI with the project context.
 
 Ensure you have NVIDIA Drivers installed supporting CUDA 12.6+.
 

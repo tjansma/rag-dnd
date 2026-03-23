@@ -36,6 +36,8 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **Campaign Management:** `campaign activate` for easy switching; `campaign create` auto-provisions directories.
   - **Ingestion:** Markdown support with hash-based update detection.
     Chunker decoupled from ORM (`source_path: Path` parameter).
+  - **Cross-Platform Setup:** `setup.ps1` and `setup.sh` automate installation, configuration, and launcher creation.
+  - **Gemini CLI Integration:** Automatic path configuration for hooks and MCP in `.gemini/settings.json`.
   - **Session Management:** Context-managed database sessions with singleton engine,
     `_store_impl`/`_delete_impl` helpers for transactional integrity, and
     `expire_on_commit=False` for safe detached object access.
