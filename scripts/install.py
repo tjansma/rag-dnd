@@ -27,25 +27,44 @@ def run_command(command, shell=True):
 
 def check_npm():
     try:
-        subprocess.run(["npm", "--version"], check=True, capture_output=True)
+        # Prefer 'npm.cmd' on Windows to avoid issues with basic 'npm' command in some environments
+        cmd = "npm.cmd" if os.name == "nt" else "npm"
+        subprocess.run([cmd, "--version"], check=True, capture_output=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
 def install_gemini_cli():
     print_cyan("Checking for Gemini CLI...")
+    # Try multiple ways to find 'gemini'
+    found = False
     try:
-        subprocess.run(["gemini", "--version"], check=True, capture_output=True)
-        print_green("Gemini CLI is already installed.")
+        cmd = "gemini.cmd" if os.name == "nt" else "gemini"
+        subprocess.run([cmd, "--version"], check=True, capture_output=True)
+        found = True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print_yellow("Gemini CLI not found. Attempting to install via npm...")
-        if check_npm():
-            if run_command("npm install -g @google/gemini-cli"):
-                print_green("Gemini CLI installed successfully.")
-            else:
-                print_red("Failed to install Gemini CLI. Please install it manually: npm install -g @google/gemini-cli")
+        # Fallback check for common paths on Windows
+        if os.name == "nt":
+            npm_path = Path(os.environ.get("APPDATA", "")) / "npm" / "gemini.cmd"
+            if npm_path.exists():
+                found = True
+    
+    if found:
+        print_green("Gemini CLI is available.")
+        return True
+
+    print_yellow("Gemini CLI not found in PATH. Attempting to install/find via npm...")
+    if check_npm():
+        npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+        if run_command(f"{npm_cmd} install -g @google/gemini-cli"):
+            print_green("Gemini CLI installed successfully.")
+            return True
         else:
-            print_red("npm not found. Cannot install Gemini CLI automatically.")
+            print_red("Failed to install Gemini CLI.")
+            return False
+    else:
+        print_red("npm not found. Cannot install Gemini CLI automatically.")
+        return False
 
 def configure_settings(project_root: Path):
     print_cyan("Configuring .gemini/settings.json...")
@@ -154,7 +173,9 @@ def main():
         return
 
     print_cyan("Step 2: Setting up Gemini CLI...")
-    install_gemini_cli()
+    if not install_gemini_cli():
+        print_red("Critical dependency 'gemini' missing and could not be installed. Setup stopped.")
+        sys.exit(1)
 
     print_cyan("Step 3: Configuring project context...")
     configure_settings(project_root)
