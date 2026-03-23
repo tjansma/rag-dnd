@@ -2,7 +2,27 @@
 
 This document outlines the vision and future features for the `rag-dnd` project. Unlike `todo.md` (which tracks current generic tasks), this roadmap focuses on capability expansion.
 
+## Completed (v0.1 - v0.3)
+
+- [x] **Core RAG Logic**: Chunking, Embedding, Storage.
+- [x] **GPU Acceleration**: Jina-v3 + CUDA 12.6.
+- [x] **Backend API**: FastAPI v2 RESTful routes.
+- [x] **Hybrid Search (BM25 + Vector RRF Fusion)**.
+- [x] **Multi-Campaign Support**: Campaign CRUD, scoped storage & querying.
+- [x] **Integrations**: Gemini CLI Hook, MCP Server, Admin CLI.
+- [x] **Data & Config Separation**: Campaign data stored in user profile (`~/.rag_dnd/campaigns/`).
+- [x] **Lazy CLI Configuration**: Supports global commands without prior campaign setup.
+- [x] **Interactive Campaign Setup**: `campaign create` prompts for activation and auto-provisions directories.
+
 ## 1. Automation & Workflow
+
+## 1. Multi-Query Decomposition (v1.x)
+
+- Upgrade Query Expansion to generate _multiple_ specific sub-queries from one user prompt.
+- Perform parallel vector searches for each sub-query.
+- De-duplicate and re-rank results to cover multiple semantic aspects (e.g., "visuals" vs "dialogue").
+
+## 2. Automation & Workflow
 
 - [ ] **Automatic Session Transcription**
   - Hook into Gemini CLI to log every prompt/response pair to a raw transcript file during gameplay.
@@ -42,35 +62,7 @@ This document outlines the vision and future features for the `rag-dnd` project.
     - Images/Maps
   - Ingestion pipeline to add these reference materials to the RAG.
 
-## 4. Structured Data & Character Tracking
-
-- [ ] **Relational Character Database**
-  - Move beyond text-only tracking for critical stats.
-  - Schema for:
-    - Ability Scores, Saving Throws, Skills.
-    - Inventory, Gold, Equipment.
-    - HP, AC, Conditions.
-- [ ] **State Tracking Hooks**
-  - Mechanisms to update this DB based on narrative events (e.g., "I buy a potion" -> deduct gold, add item).
-
-## 5. Interfaces & Management
-
-- [ ] **Web Administration Interface**
-  - GUI overview of the RAG content types and collections.
-  - Drag-and-drop upload for documents and manuals.
-  - Visual editing of chunks or headers.
-- [ ] **CLI Tool Expansion**
-  - Advanced management commands (re-index specific collections, prune partial data).
-- [ ] **Full MCP & Hook Ecosystem**
-  - Expose Character DB and Rule lookups solely via MCP/Hooks to the AI.
-- [ ] **Multipart File Uploads**
-  - Refactor API to support `multipart/form-data` for robust file handling.
-
-## 6. Search Intelligence
-
-- [x] **Hybrid Search (BM25 + Semantic)**
-  - Implement **In-Memory BM25** using `rank_bm25` (Ensemble Retriever).
-  - Implement **Reciprocal Rank Fusion (RRF)** to combine Jina-v3 vectors with BM25 scores.
+## 4. Content Ingestion (PDF & Rules)
 
 ## 7. Advanced AI Adaptation (Future)
 

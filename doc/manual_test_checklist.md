@@ -32,8 +32,15 @@ Use this checklist to manually verify system functionality after each migration 
 - [ ] **Search (Hybrid/Keyword)**: `rag-cli rag search "Gundren Rockseeker"`
   - _Check:_ Should find exact name matches.
 
-### Session Management
+### Session & Campaign Management
 
+- [ ] **Campaign List**: `rag-cli campaign list`
+  - _Check:_ Should show table of campaigns and the "Active campaign" status at the bottom.
+- [ ] **Campaign Create (Interactive)**: `rag-cli campaign create "Test" test "5e" "en"`
+  - _Check:_ Should prompt to activate. Respond "y".
+  - _Check:_ Directory `~/.rag_dnd/campaigns/test/` should be created.
+- [ ] **Campaign Activate**: `rag-cli campaign activate <short_name>`
+  - _Check:_ Should show success message and update active campaign in `config.toml`.
 - [ ] **List Sessions**: `rag-cli session list`
   - _Check:_ Should show table of sessions from `transcript.db`.
 - [ ] **Show Session**: `rag-cli session show 1`

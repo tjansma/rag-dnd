@@ -31,6 +31,9 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **v2 API:** `POST/GET /v2/campaigns`, `PUT/DELETE .../documents`, `POST .../query`.
   - **Clients:** `rag-cli` (Admin + `--campaign` flag), `rag-mcp` (IDE), Gemini Hooks (Context).
     All campaign-aware via shared `ClientConfig`.
+  - **Data Separation:** Campaign data and logs stored in user profile (`~/.rag_dnd/campaigns/`).
+  - **Lazy CLI Configuration:** Admin and listing commands work without a pre-set campaign.
+  - **Campaign Management:** `campaign activate` for easy switching; `campaign create` auto-provisions directories.
   - **Ingestion:** Markdown support with hash-based update detection.
     Chunker decoupled from ORM (`source_path: Path` parameter).
   - **Session Management:** Context-managed database sessions with singleton engine,
@@ -41,7 +44,6 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
 
 - **In Progress / Planned:**
   - **Prompt Engine:** Server-side rendering of system prompts with character sheet injection.
-  - **Data Separation:** Moving campaign data to user profile (`~/.rag_dnd/campaigns/`).
 
 ## Setup & Usage
 

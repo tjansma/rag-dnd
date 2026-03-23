@@ -54,11 +54,17 @@ The server will start on `http://localhost:8001`.
 Create a campaign and configure it:
 
 ```bash
-# Create a campaign
+# Create a campaign (Interactive: prompts to activate and creates directories)
 uv run rag-cli campaign create "Lost Mine of Phandelver" lmop_tod "D&D 5e" "nl"
 
-# Upload a document
-uv run rag-cli --campaign lmop_tod rag upload data/session_log.md
+# Activate an existing campaign
+uv run rag-cli campaign activate wotlk
+
+# List campaigns (shows active campaign)
+uv run rag-cli campaign list
+
+# Upload a document (uses active campaign)
+uv run rag-cli rag upload data/session_log.md
 ```
 
 ### 3. Querying
@@ -82,7 +88,9 @@ curl -X POST "http://localhost:8001/v2/campaigns/lmop_tod/query" \
 - [x] **Backend API:** FastAPI v2 RESTful routes.
 - [x] **Hybrid Search:** BM25 + Vector RRF Fusion.
 - [x] **Multi-Campaign Support:** Campaign CRUD, scoped storage & querying.
-- [x] **Integrations:** Gemini CLI Hook, MCP Server, Admin CLI (all campaign-aware).
+- [x] **Integrations:** Gemini CLI Hook, MCP Server, Admin CLI.
+- [x] **Robust CLI:** Lazy configuration, campaign activation, and auto-provisioning.
+- [x] **Data Separation:** Campaign data stored in `~/.rag_dnd/`.
 - [ ] **Prompt Engine:** Server-side system prompt rendering.
 
 See `doc/todo.md` for the technical task list and `doc/roadmap.md` for the long-term vision.
