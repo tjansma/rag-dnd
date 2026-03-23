@@ -48,6 +48,12 @@ def install_gemini_cli():
             npm_path = Path(os.environ.get("APPDATA", "")) / "npm" / "gemini.cmd"
             if npm_path.exists():
                 found = True
+        else:
+            # Fallback check for common paths on Linux
+            home_bin = Path.home() / ".npm-global" / "bin" / "gemini"
+            usr_local_bin = Path("/usr/local/bin/gemini")
+            if home_bin.exists() or usr_local_bin.exists():
+                found = True
     
     if found:
         print_green("Gemini CLI is available.")
