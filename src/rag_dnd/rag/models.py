@@ -20,7 +20,7 @@ class Collection(ORMBase):
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
     name: orm.Mapped[str] = orm.mapped_column(sa.String)
-    campaign_id: orm.Mapped[int | None] = \
+    campaign_id: orm.Mapped[int] = \
         orm.mapped_column(sa.Integer, sa.ForeignKey("campaign_metadata.id"))
 
     campaign: orm.Mapped["CampaignMetadata"] = orm.relationship(
