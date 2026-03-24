@@ -7,6 +7,7 @@ import sys
 import tempfile
 
 import dotenv
+from sqlalchemy.engine.url import URL
 
 # ------------------------------------------------------------------
 # Global configuration instance
@@ -19,7 +20,7 @@ dotenv.load_dotenv()
 # Default configuration values
 # ==================================================================
 _DEFAULTS = {
-    "data_dir": None,
+    "custom_data_dir": None,
     "transcript_database": Path("db/relational/transcript.db"),
     "api_ip": "127.0.0.1",
     "api_port": 8001,
@@ -29,7 +30,12 @@ _DEFAULTS = {
     "vector_database": Path("db/vector"),
     "relevance_threshold": 0.75,
     "bm25_threshold": 2.0,
-    "content_database_url": "sqlite:///db/relational/content.db",
+    "content_database_driver": "sqlite",
+    "content_database_host": None,
+    "content_database_port": None,
+    "content_database_user": None,
+    "content_database_password": None,
+    "content_database_name": "content.db",
     "log_level": "WARNING",
     "log_file": Path("log/app.log"),
     "upload_dir": Path("uploads"),
@@ -132,7 +138,7 @@ def _get_default_data_dir() -> Path:
 @dataclass
 class Config:
     """Configuration for the server application."""
-    data_dir: Path
+    custom_data_dir: Path | None
     transcript_database: Path
     api_ip: str
     api_port: int
@@ -142,7 +148,12 @@ class Config:
     vector_database: Path
     relevance_threshold: float
     bm25_threshold: float
-    content_database_url: str
+    content_database_driver: str
+    content_database_host: str
+    content_database_port: str
+    content_database_user: str
+    content_database_password: str
+    content_database_name: str
     log_level: str
     log_file: Path
     upload_dir: Path
@@ -154,6 +165,45 @@ class Config:
     query_expansion_max_new_tokens: int
     api_auto_reload: bool
     auto_update_ai_models: bool
+
+    @property
+    def data_dir(self) -> Path:
+        """
+        Get the data directory.
+        
+        Returns:
+            Path: The data directory.
+        """
+        if self.custom_data_dir is not None:
+            return self.custom_data_dir
+        return _get_default_data_dir()
+
+    @property
+    def content_database_url(self) -> str:
+        """
+        Get the content database URL.
+        
+        Returns:
+            str: The content database URL.
+        """
+        if self.content_database_driver.lower() == "sqlite":
+            if not Path(self.content_database_name).is_absolute():
+                db_full_name = self.data_dir / self.content_database_name
+            else:
+                db_full_name = Path(self.content_database_name)
+
+            os.makedirs(db_full_name.parent, exist_ok=True)
+        else:
+            db_full_name = self.content_database_name
+
+        return str(URL.create(
+            drivername=self.content_database_driver,
+            username=self.content_database_user,
+            password=self.content_database_password,
+            host=self.content_database_host,
+            port=self.content_database_port,
+            database=str(db_full_name.as_posix()),
+        ))
 
     @classmethod
     def load(cls, overrides: dict[str, Any] | None = None) -> Self:
@@ -197,10 +247,15 @@ class Config:
         # All other data storage locations are relative to the campaign
         # directories, and will be created for each campaign.
         # ------------------------------------------------------------------
-        if not _env_override(actual_config,
-                             "data_dir", "RAG_DND_DATA_DIR",
-                             Path):
-            actual_config["data_dir"] = _get_default_data_dir()
+        _env_override(actual_config,
+                      "custom_data_dir", "RAG_DND_DATA_DIR",
+                      Path)
+        
+        # ------------------------------------------------------------------
+        # Resolve active data directory
+        # ------------------------------------------------------------------
+        active_data_dir = Path(actual_config["custom_data_dir"] or \
+                               _get_default_data_dir()).resolve()
         
         # ------------------------------------------------------------------
         # Global settings
@@ -266,11 +321,18 @@ class Config:
         # ------------------------------------------------------------------
         # Content database
         # ------------------------------------------------------------------
-        if _env_override(actual_config,
-                         "content_database_url", "RAG_DND_CONTENTDB"):
-            db_path = actual_config["content_database_url"]
-            if "://" not in db_path:
-                actual_config["content_database_url"] = f"sqlite:///{db_path}"
+        _env_override(actual_config,
+                      "content_database_driver", "RAG_DND_CONTENTDB_DRIVER")
+        _env_override(actual_config,
+                      "content_database_host", "RAG_DND_CONTENTDB_HOST")
+        _env_override(actual_config,
+                      "content_database_port", "RAG_DND_CONTENTDB_PORT")
+        _env_override(actual_config,
+                      "content_database_user", "RAG_DND_CONTENTDB_USER")
+        _env_override(actual_config,
+                      "content_database_password", "RAG_DND_CONTENTDB_PASSWORD")
+        _env_override(actual_config,
+                      "content_database_name", "RAG_DND_CONTENTDB_NAME")
 
         # ------------------------------------------------------------------
         # Logging and debug settings
@@ -286,6 +348,22 @@ class Config:
         # ------------------------------------------------------------------
         if overrides:
             actual_config.update(overrides)
+
+        # ------------------------------------------------------------------
+        # Resolve and create paths
+        # ------------------------------------------------------------------
+        os.makedirs(active_data_dir, exist_ok=True)
+        path_keys = [
+            "transcript_database",
+            "vector_database",
+            "log_file",
+            "upload_dir"
+        ]
+        for current_path in path_keys:
+            if not actual_config[current_path].is_absolute():
+                actual_config[current_path] = \
+                    (active_data_dir / actual_config[current_path]).resolve()
+            os.makedirs(actual_config[current_path].parent, exist_ok=True)
 
         # ------------------------------------------------------------------
         # Apply global settings to environment

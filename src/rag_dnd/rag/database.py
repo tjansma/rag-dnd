@@ -27,7 +27,7 @@ def _get_engine():
         logger.debug(f"Creating engine for database: {config.content_database_url}")
         
         # SQLite requires check_same_thread=False for multi-threaded access
-        if "sqlite" in config.content_database_url:
+        if config.content_database_driver.lower() == "sqlite":
             connect_args = {
                 "check_same_thread": False
             }
@@ -38,7 +38,7 @@ def _get_engine():
                                 connect_args=connect_args)
         
         # Set PRAGMA for SQLite
-        if "sqlite" in config.content_database_url:
+        if config.content_database_driver.lower() == "sqlite":
             @event.listens_for(_engine, "connect")
             def set_sqlite_pragma(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
