@@ -151,7 +151,7 @@ def configure_settings(project_root: Path):
                             import re
                             # Pattern matches --directory followed by a path (possibly quoted)
                             pattern = r'(--directory\s+)("[^"]+"|[^\s]+)'
-                            replacement = f'\\1"{root_str}"'
+                            replacement = lambda m: f'{m.group(1)}"{root_str}"'
                             hook["command"] = re.sub(pattern, replacement, cmd)
 
     # Update MCP
