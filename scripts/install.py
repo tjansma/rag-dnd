@@ -203,8 +203,17 @@ def create_launchers(project_root: Path):
     bat_content = f"""@echo off
 set "GEMINI_SYSTEM_MD={root_str}\\system.md"
 cd /d "{root_str}"
+
+where uv >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [rag-dnd] Error: 'uv' not found in PATH.
+    echo Please run setup.ps1 or ensure 'uv' is installed and in your PATH.
+    pause
+    exit /b 1
+)
+
 echo [rag-dnd] Starting API server in background...
-start /b uv run rag-server >nul 2>&1
+start "rag-server" /min uv run rag-server
 timeout /t 2 >nul
 gemini
 """

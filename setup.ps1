@@ -4,13 +4,29 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "--- rag-dnd Setup ---" -ForegroundColor Cyan
 
+# Function to persistently add a path to the User environment
+function Add-PersistentPath ($newPath) {
+    if (-not (Test-Path $newPath)) { return }
+    $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    if ($currentPath -split ";" -notcontains $newPath) {
+        $sep = if ($currentPath -and !$currentPath.EndsWith(";")) { ";" } else { "" }
+        $updatedPath = $currentPath + $sep + $newPath
+        [System.Environment]::SetEnvironmentVariable("Path", $updatedPath, "User")
+        Write-Host "Added $newPath to persistent User PATH." -ForegroundColor Green
+    }
+}
+
 # 1. Check for uv
 if (!(Get-Command uv -ErrorAction SilentlyContinue)) {
     Write-Host "uv not found. Installing uv..." -ForegroundColor Yellow
     # Using the canonical installation command for Windows
     Invoke-RestMethod -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
-    # Add to current path for immediate use
-    $env:PATH += ";$HOME\.local\bin"
+    
+    # Persistent update
+    $uvPath = "$HOME\.local\bin"
+    Add-PersistentPath $uvPath
+    # Session update
+    $env:PATH += ";$uvPath"
 }
 else {
     Write-Host "uv is already installed." -ForegroundColor Green
@@ -21,16 +37,8 @@ if (!(Get-Command npm -ErrorAction SilentlyContinue)) {
     Write-Host "npm not found. Installing Node.js via winget..." -ForegroundColor Yellow
     winget install --id OpenJS.NodeJS --source winget --disable-interactivity --accept-source-agreements --accept-package-agreements
     
-    # Refresh PATH from registry for the current session
+    # Refresh session PATH from registry
     $env:PATH = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-    
-    if (!(Get-Command npm -ErrorAction SilentlyContinue)) {
-        # Fallback: manually add common Node.js path if winget didn't update registry yet
-        $nodePath = "C:\Program Files\nodejs"
-        if (Test-Path $nodePath) {
-            $env:PATH += ";$nodePath"
-        }
-    }
 }
 else {
     Write-Host "npm is already installed." -ForegroundColor Green
@@ -41,13 +49,16 @@ if (!(Get-Command gemini -ErrorAction SilentlyContinue)) {
     Write-Host "Gemini CLI not found. Installing Gemini CLI..." -ForegroundColor Yellow
     npm install -g @google/gemini-cli
     
-    # Add npm global bin to current path
-    $npmConfigPrefix = npm config get prefix
+    # Add npm global bin to PATH
+    $npmConfigPrefix = (npm config get prefix).Trim()
     if ($npmConfigPrefix) {
+        Add-PersistentPath $npmConfigPrefix
         $env:PATH += ";$npmConfigPrefix"
     } else {
         # Fallback to common Windows npm path
-        $env:PATH += ";$env:APPDATA\npm"
+        $npmFallback = "$env:APPDATA\npm"
+        Add-PersistentPath $npmFallback
+        $env:PATH += ";$npmFallback"
     }
 }
 else {
