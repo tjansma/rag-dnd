@@ -3,6 +3,53 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import re
+
+SETTINGS_TEMPLATE = {
+    "tools": {
+        "enableHooks": True
+    },
+    "hooks": {
+        "disabled": [],
+        "enabled": [],
+        "notifications": [],
+        "BeforeAgent": [
+            {
+                "hooks": [
+                    {
+                        "name": "dnd-rag-context",
+                        "type": "command",
+                        "command": "uv --directory DIRECTORY_PLACEHOLDER run rag-hook-context",
+                        "timeout": 30000
+                    }
+                ]
+            }
+        ],
+        "AfterAgent": [
+            {
+                "hooks": [
+                    {
+                        "name": "dnd-rag-logger",
+                        "type": "command",
+                        "command": "uv --directory DIRECTORY_PLACEHOLDER run rag-hook-logger",
+                        "timeout": 5000
+                    }
+                ]
+            }
+        ]
+    },
+    "mcpServers": {
+        "rag-mcp": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "DIRECTORY_PLACEHOLDER",
+                "run",
+                "rag-mcp"
+            ]
+        }
+    }
+}
 
 def print_cyan(text):
     print(f"\033[96m{text}\033[0m")
@@ -77,15 +124,16 @@ def configure_settings(project_root: Path):
     settings_path = project_root / ".gemini" / "settings.json"
     
     if not settings_path.exists():
-        print_yellow(f"Warning: {settings_path} not found. Skipping settings configuration.")
-        return
-
-    with open(settings_path, 'r') as f:
-        try:
-            settings = json.load(f)
-        except json.JSONDecodeError:
-            print_red(f"Error: {settings_path} is not a valid JSON file.")
-            return
+        print_yellow(f".gemini/settings.json not found. Creating from template...")
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings = SETTINGS_TEMPLATE
+    else:
+        with open(settings_path, 'r') as f:
+            try:
+                settings = json.load(f)
+            except json.JSONDecodeError:
+                print_red(f"Error: {settings_path} is not a valid JSON file.")
+                return
 
     # Update paths to be absolute based on the current project location
     root_str = str(project_root.resolve())
@@ -146,10 +194,12 @@ def create_launchers(project_root: Path):
     
     # Windows Launcher
     bat_path = project_root / "rag-gemini.bat"
-    # Note: Using double-quotes for paths with spaces
     bat_content = f"""@echo off
 set "GEMINI_SYSTEM_MD={root_str}\\system.md"
 cd /d "{root_str}"
+echo [rag-dnd] Starting API server in background...
+start /b uv run rag-server >nul 2>&1
+timeout /t 2 >nul
 gemini
 """
     with open(bat_path, 'w', encoding='utf-8') as f:
@@ -160,6 +210,9 @@ gemini
     sh_content = f"""#!/bin/bash
 export GEMINI_SYSTEM_MD="{root_str}/system.md"
 cd "{root_str}"
+echo "[rag-dnd] Starting API server in background..."
+uv run rag-server > /dev/null 2>&1 &
+sleep 2
 gemini
 """
     with open(sh_path, 'w', encoding='utf-8') as f:
