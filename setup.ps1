@@ -4,6 +4,10 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "--- rag-dnd Setup ---" -ForegroundColor Cyan
 
+# 0. Check for Microsoft Visual C++ Redistributable (Required for PyTorch)
+Write-Host "Checking for Microsoft Visual C++ Redistributable..." -ForegroundColor Cyan
+winget install --id Microsoft.VCRedist.2015+.x64 --source winget --disable-interactivity --accept-source-agreements --accept-package-agreements
+
 # Function to persistently add a path to the User environment
 function Add-PersistentPath ($newPath) {
     if (-not (Test-Path $newPath)) { return }
