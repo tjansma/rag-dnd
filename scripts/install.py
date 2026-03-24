@@ -136,22 +136,28 @@ def configure_settings(project_root: Path):
                 return
 
     # Update paths to be absolute based on the current project location
-    root_str = str(project_root.resolve())
+    root_posix = project_root.resolve().as_posix()
     
     # Update Hooks
     if "hooks" in settings:
+        # Ensure hooks are enabled
+        enabled_hooks = settings["hooks"].get("enabled", [])
+        for hook_name in ["dnd-rag-context", "dnd-rag-logger"]:
+            if hook_name not in enabled_hooks:
+                enabled_hooks.append(hook_name)
+        settings["hooks"]["enabled"] = enabled_hooks
+
         for phase in ["BeforeAgent", "AfterAgent"]:
             if phase in settings["hooks"]:
                 for hook_group in settings["hooks"][phase]:
                     for hook in hook_group.get("hooks", []):
                         if "command" in hook:
                             cmd = hook["command"]
-                            # Use a more robust search and replace for --directory
-                            # Handle both --directory <path> and --directory "<path>"
                             import re
                             # Pattern matches --directory followed by a path (possibly quoted)
                             pattern = r'(--directory\s+)("[^"]+"|[^\s]+)'
-                            replacement = lambda m: f'{m.group(1)}"{root_str}"'
+                            # Smart quoting: only add quotes if the path contains spaces
+                            replacement = lambda m: f'{m.group(1)}"{root_posix}"' if " " in root_posix else f'{m.group(1)}{root_posix}'
                             hook["command"] = re.sub(pattern, replacement, cmd)
 
     # Update MCP
@@ -161,7 +167,7 @@ def configure_settings(project_root: Path):
                 args = server_config["args"]
                 try:
                     idx = args.index("--directory")
-                    args[idx+1] = root_str
+                    args[idx+1] = root_posix
                 except (ValueError, IndexError):
                     pass
 
