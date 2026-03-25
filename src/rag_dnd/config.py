@@ -43,7 +43,7 @@ _DEFAULTS = {
     "query_expansion_model": "",
     "query_expansion_provider": "",
     "query_expansion_device": "cpu",
-    "query_expansion_system_prompt": "",
+    "query_expansion_system_prompt": "prompts/qry_expansion_system_prompt.txt",
     "query_expansion_max_new_tokens": 512,
     "api_auto_reload": False,
     "auto_update_ai_models": True,
