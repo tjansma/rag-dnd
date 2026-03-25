@@ -5,7 +5,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from ..config import Config
 
-SUPPORTED_MODELS = [ "Qwen/Qwen3-4B-Instruct-2507-FP8" ]
+SUPPORTED_MODELS = [ "Qwen/Qwen3-4B-Instruct-2507-FP8",
+                     "Qwen/Qwen3.5-2B" ]
 SUPPORTED_DEVICES = [ "cpu", "cuda", "auto" ]
 
 logger = logging.getLogger(__name__)
