@@ -40,7 +40,7 @@ _DEFAULTS = {
     "log_file": Path("log/app.log"),
     "upload_dir": Path("uploads"),
     "query_expansion_enabled": True,
-    "query_expansion_model": "Qwen/Qwen3-4B-Instruct-2507-FP8",
+    "query_expansion_model": "Qwen/Qwen3-1.7B",
     "query_expansion_provider": "HuggingFace",
     "query_expansion_device": "cpu",
     "query_expansion_system_prompt": "prompts/qry_expansion_system_prompt.txt",
