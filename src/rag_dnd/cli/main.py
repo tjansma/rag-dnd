@@ -324,7 +324,14 @@ def campaign_list():
 import json
 
 @campaign_app.command("create")
-def campaign_create(full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: str | None = typer.Option(None, help="JSON string representing extensions")):
+def campaign_create(full_name: str, 
+                    short_name: str, 
+                    roleplay_system: str, 
+                    language: str, 
+                    active_summary_file: str | None = None, 
+                    session_log_file: str | None = None, 
+                    extensions: str | None = typer.Option(None, help="JSON string representing extensions"),
+                    yes_to_all: bool = typer.Option(False, help="Automatically answer yes to all prompts", is_flag=True)):
     """
     Create a new campaign.
 
@@ -336,6 +343,7 @@ def campaign_create(full_name: str, short_name: str, roleplay_system: str, langu
         active_summary_file (str | None): The active summary file of the campaign.
         session_log_file (str | None): The session log file of the campaign.
         extensions (str | None): Valid JSON string of extensions.
+        yes_to_all (bool): Automatically answer yes to all prompts.
 
     Returns:
         None
@@ -348,13 +356,19 @@ def campaign_create(full_name: str, short_name: str, roleplay_system: str, langu
         client = _get_client()
         campaign = client.create_campaign(full_name, short_name, roleplay_system, language, active_summary_file, session_log_file, parsed_ext)
         console.print(f"[bold green]Success![/bold green] Campaign created: {campaign.full_name}")
-        response = console.input(f"[yellow]Write active configuration to '{client.config.config_dir}/config.toml' to make this campaign active (y/n)?[/yellow]")
+        if yes_to_all:
+            response = "y"
+        else:
+            response = console.input(f"[yellow]Write active configuration to '{client.config.config_dir}/config.toml' to make this campaign active (y/n)?[/yellow]")
         if response.lower() == "y":
             client.config._campaign = short_name
             client.config.save_active_campaign()
             console.print(f"[bold green]Success![/bold green] Campaign set as active.")
 
-            response = console.input(f"[yellow]Create directory structure for campaign (y/n)?[/yellow]")
+            if yes_to_all:
+                response = "y"
+            else:
+                response = console.input(f"[yellow]Create directory structure for campaign (y/n)?[/yellow]")
             if response.lower() == "y":
                 if client.create_campaign_directory_structure():
                     console.print(f"[bold green]Success![/bold green] Directory structure created.")

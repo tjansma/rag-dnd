@@ -1,6 +1,22 @@
 #!/bin/bash
 set -e
 
+wait_for_port() {
+    local port=$1
+    local timeout=120
+    local start_time=$(date +%s)
+    
+    echo -e "\033[0;36mWaiting for server on port $port...\033[0m"
+    while ! (echo > /dev/tcp/localhost/$port) >/dev/null 2>&1; do
+        if [ $(($(date +%s) - start_time)) -gt $timeout ]; then
+            echo -e "\033[0;31mTimeout waiting for port $port\033[0m"
+            return 1
+        fi
+        sleep 1
+    done
+    return 0
+}
+
 echo -e "\033[0;36m--- rag-dnd Setup ---\033[0m"
 
 # 1. Check for uv
@@ -52,6 +68,22 @@ fi
 # 3. Run the main install script via uv
 echo -e "\033[0;36mRunning project setup with uv...\033[0m"
 uv run scripts/install.py
+
+# 5. Create default campaign
+echo -e "\033[0;36mCreating default campaign...\033[0m"
+
+# Start server in background
+uv run rag-server > /dev/null 2>&1 &
+SERVER_PID=$!
+
+# Wait for server to be available
+if wait_for_port 8001; then
+    # Create the campaign
+    uv run rag-cli campaign create "Default Campaign" default dnd5e nl --yes-to-all
+fi
+
+# Stop server gracefully
+kill $SERVER_PID
 
 echo -e "\033[0;32m--- Setup Complete ---\033[0m"
 echo -e "You can now use './rag-gemini.sh' to start the Gemini CLI with rag-dnd context."

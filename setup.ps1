@@ -1,5 +1,25 @@
 # Setup script for rag-dnd on Windows (PowerShell)
 
+function Wait-For-Port {
+    param (
+        [int]$Port,
+        [int]$Timeout = 120
+    )
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $Timeout) {
+        $socket = New-Object System.Net.Sockets.TcpClient
+        try {
+            $socket.Connect("localhost", $Port)
+            $socket.Close()
+            return $true
+        }
+        catch {
+            Start-Sleep -Seconds 1
+        }
+    }
+    return $false
+}
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "--- rag-dnd Setup ---" -ForegroundColor Cyan
@@ -58,7 +78,8 @@ if (!(Get-Command gemini -ErrorAction SilentlyContinue)) {
     if ($npmConfigPrefix) {
         Add-PersistentPath $npmConfigPrefix
         $env:PATH += ";$npmConfigPrefix"
-    } else {
+    }
+    else {
         # Fallback to common Windows npm path
         $npmFallback = "$env:APPDATA\npm"
         Add-PersistentPath $npmFallback
@@ -75,5 +96,20 @@ Write-Host "Running project setup with uv..." -ForegroundColor Cyan
 $env:PYTHONUNBUFFERED = "1"
 uv run scripts/install.py
 
+# 5. Create default campaign
+Write-Host "Creating default campaign..." -ForegroundColor Cyan
+# Start server in background
+$serverProcess = Start-Process -PassThru uv -ArgumentList "run rag-server"
+
+# Wait for server to be available
+Write-Host "Waiting for server to be available (this may take a while)..." -ForegroundColor Cyan
+Wait-For-Port 8001
+
+uv run rag-cli campaign create "Default Campaign" default dnd5e nl --yes-to-all
+
+# Stop server
+Stop-Process -Id $serverProcess.Id
+
+# 6. Done
 Write-Host "--- Setup Complete ---" -ForegroundColor Green
 Write-Host "You can now use 'rag-gemini.bat' to start the Gemini CLI with rag-dnd context."
