@@ -138,7 +138,15 @@ def prompt_llm(prompt: list[dict],
     # Get the LLM instance for the query expansion model
     llm = get_llm(config.query_expansion_model, config.query_expansion_device)
     # Apply the chat template to the prompt to expand it
-    text = llm.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+    if llm.model_name.lower() == "qwen/qwen3-1.7b":
+        text = llm.tokenizer.apply_chat_template(prompt, 
+                                                tokenize=False, 
+                                                add_generation_prompt=True, 
+                                                enable_thinking=False)
+    else:
+        text = llm.tokenizer.apply_chat_template(prompt, 
+                                                tokenize=False, 
+                                                add_generation_prompt=True)
     # Generate the response from the expanded prompt
     return llm.generate(text)
 
