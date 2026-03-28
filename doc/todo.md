@@ -203,4 +203,15 @@
 
 - [x] **`content_database` HACK in `config.py`**: Intermediate key met `del` — fragiel bij refactoring. Fix bij v0.3.
 - [x] **`Collection.campaign_id`**: Non-nullable FK zonder campaign context — fix bij v0.3 multi-campaign.
-- [x] **CLI Config Validatie**: De CLI geeft direct een foutmelding als `campaign` ontbreekt in config/env, blokkeert commando's als `rag-cli campaign list` en `create`. Fixen dat dit pas gecheckt wordt als de specifieke actie dit vereist.
+- [x] CLI Config Validatie: De CLI geeft direct een foutmelding als `campaign` ontbreekt in config/env, blokkeert commando's als `rag-cli campaign list` en `create`. Fixen dat dit pas gecheckt wordt als de specifieke actie dit vereist.
+
+## v0.6: Infrastructure & CPU Optimization (Backlog)
+
+- [ ] **LLM Provider Abstraction**
+  - [ ] Define `BaseLLMProvider` interface in `llm.py`.
+  - [ ] Refactor `HuggingFaceLLM` to implement the interface.
+  - [ ] Implement `LlamaCppProvider` (supporting GGUF files).
+  - [ ] Add `query_expansion_provider` to `Config`.
+- [ ] **Exploratory: GGUF Embeddings**
+  - [ ] Research `jina-embeddings-v3` task adapters in `llama.cpp`.
+  - [ ] Implement `GGUFEmbeddingProvider`.

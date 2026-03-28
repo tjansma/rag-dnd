@@ -60,3 +60,13 @@ The goal is to move from "Generic RAG" to a "Smart D&D Assistant" by adding mech
   - Real-time transcription and low-latency TTS for a hands-free DM experience.
 - [ ] **Live DM HUD (Heads-Up Display)**
   - Real-time dashboard that proactively displays relevant statblocks, maps, and inventory based on the current context.
+
+---
+
+## 6. Infrastructure & CPU Optimization
+
+- [ ] **Unified LLM Provider Abstraction**
+  - Implement a common interface for different backends (`transformers`, `llama-cpp`, `ollama`).
+  - Enable seamless switching between GPU-native (PyTorch) and CPU-optimized (GGUF) inference.
+- [ ] **Full GGUF Pipeline**
+  - Move both Embeddings (Jina-v3) and LLM (Qwen) to GGUF format for high-performance retrieval on low-resource VMs.
