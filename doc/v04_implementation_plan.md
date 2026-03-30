@@ -9,28 +9,28 @@ Restructure the codebase to separate shared infrastructure from domain-specific 
 
 ---
 
-## Phase 1: Module Restructuring
+## Phase 1: Module Restructuring & The Facade
 
-Move shared infrastructure (`ORMBase`, `database.py`, `CampaignMetadata`) out of `rag/` into a new `core/` module.
+Move shared infrastructure (`ORMBase`, `database.py`, `CampaignMetadata`) out of `rag/` into a new `core/` module. Break out the `Campaign` class into a top-level **Facade/Service** layer to orchestrate the modules.
 
 ### Target Structure
 
 ```
 src/rag_dnd/
+    campaign.py              # NEW FACADE — Moved from rag/campaign.py
     core/                    # NEW — shared infrastructure
         __init__.py          # exports: ORMBase, CampaignMetadata, get_session, init_db
         database.py          # MOVED from rag/database.py
         models.py            # ORMBase + CampaignMetadata (extracted from rag/models.py)
+        exceptions.py        # RAGDNDException, CampaignNotFoundError
     rag/
         __init__.py          # UPDATE imports
         models.py            # KEEP: Collection, Document, Chunk, Sentence, QueryResult
-        campaign.py          # UPDATE imports
         manager.py           # UPDATE imports
         store.py             # UPDATE imports
         embeddings.py        # UPDATE imports
         chunker.py           # UPDATE imports
-        database.py          # DELETE (moved to core/)
-        exceptions.py        # unchanged
+        exceptions.py        # RAGException, DocumentNotFoundError
         llm.py               # unchanged
     game/                    # NEW — structured game data
         __init__.py
@@ -38,7 +38,7 @@ src/rag_dnd/
         models.py            # Player, Character, Session, Turn, Asset + link tables
     server/                  # UPDATE imports
     client/                  # unchanged
-    cli/                     # unchanged
+    cli/                     # UPDATE imports to use the new top-level Campaign facade
     hooks/                   # unchanged
 ```
 
@@ -95,38 +95,54 @@ All 11 models, importing `ORMBase` from `core.models`:
 - `SessionAsset` (M:N with `context`)
 - `ChunkCharacter` (entity-linking, imports `Chunk` from `rag.models`)
 
-### Relationships to add
+### Architectural Rule: Pragmatic Monolith
+To prevent circular imports while retaining ORM magic:
+1. **Never import `rag` models into `game` or vice versa.**
+2. Use **string references** for relationships (e.g., `orm.relationship("Chunk")`).
+3. Use **`backref`** from dependent models instead of explicitly declaring relationships in `core/` or across modules.
 
-- `CampaignMetadata` in `core/models.py`: add `characters`, `assets`, `sessions` relationships
-- `Document` in `rag/models.py`: add 3 nullable FK's (`session_id`, `asset_id`, `character_id`)
-- `Chunk` in `rag/models.py`: add `chunk_characters` relationship
+### Relationships to add in Phase 2
+- `Game` models (`Character`, `Asset`, `Session`) should point to `CampaignMetadata` using schema:
+  `campaign_id = mapped_column(ForeignKey("campaign_metadata.id"))`
+  and dynamically inject the property into Core using backrefs:
+  `campaign = relationship("CampaignMetadata", backref="characters")`
 
 ---
 
-## Phase 3: Modify Existing Models
+## Phase 3: Modify Existing Models (Without Circular Imports)
 
 ### [MODIFY] `core/models.py` — `CampaignMetadata`
 
-Add 3 columns + relationships:
+Add the 3 state columns, but **DO NOT** add explicit relationships here to prevent `core` depending on `game`.
 
 ```python
 current_location: Mapped[str | None]
 current_date: Mapped[str | None]
 active_session_id: Mapped[int | None]  # FK → sessions.id
 
-characters: Mapped[list["Character"]] = relationship(back_populates="campaign")
-assets: Mapped[list["Asset"]] = relationship(back_populates="campaign")
-sessions: Mapped[list["Session"]] = relationship(back_populates="campaign")
+# Do NOT define characters, assets or sessions here.
+# These will be dynamically injected by backrefs in game/models.py.
 ```
 
-### [MODIFY] `rag/models.py` — `Document`
+### [MODIFY] `rag/models.py` — `Document` & `Chunk`
 
-Add 3 nullable FK's:
+Add nullable FKs and string-based relationships to `Document`. Note the use of **string names** (`"Session"`, `"Asset"`) to avoid importing from `game.models`!
 
 ```python
 session_id: Mapped[int | None] = mapped_column(ForeignKey("sessions.id"))
 asset_id: Mapped[int | None] = mapped_column(ForeignKey("assets.id"))
 character_id: Mapped[int | None] = mapped_column(ForeignKey("characters.id"))
+
+# Optional: ORM Magie via Strings
+session = relationship("Session", backref="documents") 
+asset = relationship("Asset", backref="documents")
+character = relationship("Character", backref="documents")
+```
+
+For `Chunk` (`rag/models.py`):
+```python
+# To easily fetch the characters linked via ChunkCharacter M:N without circular imports
+characters = relationship("Character", secondary="chunk_characters", backref="chunks")
 ```
 
 ---

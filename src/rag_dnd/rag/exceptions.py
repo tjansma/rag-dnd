@@ -1,4 +1,6 @@
-class RAGException(Exception):
+from ..core.exceptions import RAGDNDException
+
+class RAGException(RAGDNDException):
     """Base exception for RAG errors."""
     pass
 

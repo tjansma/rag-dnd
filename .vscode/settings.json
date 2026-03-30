@@ -1,0 +1,16 @@
+{
+    // Bypass VSCode's Python Environment Tools (PET) discovery bug with uv-created venvs.
+    // The absolute path is used instead of ${workspaceFolder} because Pyrefly/Antigravity
+    // may not expand workspace variables correctly. Forward slashes work fine on Windows
+    // in both JSON and VSCode's path resolver.
+    "python.defaultInterpreterPath": "c:/Development/src/_AI/rag_dnd/.venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+
+    // Tell VSCode where to look for virtual environments so it auto-discovers .venv.
+    "python.venvPath": "c:/Development/src/_AI/rag_dnd",
+    "python.venvFolders": [".venv"],
+
+    // Disable Pylance (conflicts with Pyrefly), enable Pyrefly as the type checker.
+    "python.languageServer": "None",
+    "pyrefly.enable": true
+}

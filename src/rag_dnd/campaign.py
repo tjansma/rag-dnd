@@ -3,10 +3,11 @@ import logging
 from pathlib import Path
 from typing import Self, Any
 
-from . import manager
-from .database import get_session
-from .exceptions import DocumentExistsError
-from .models import CampaignMetadata, QueryResult
+from .core import get_session, CampaignMetadata
+
+from .rag import manager
+from .rag.exceptions import DocumentExistsError
+from .rag.models import QueryResult
 
 logger = logging.getLogger(__name__)
 
@@ -91,12 +92,7 @@ class Campaign:
         Returns:
             Self: The campaign.
         """
-        metadata = CampaignMetadata.load_by_short_name(short_name)
-
-        if metadata is None:
-            raise ValueError(f"Campaign '{short_name}' not found.")
-
-        return cls(metadata)
+        return cls(CampaignMetadata.load_by_short_name(short_name))
 
     @classmethod
     def from_db_by_id(cls, id: int) -> Self:
@@ -108,12 +104,7 @@ class Campaign:
         Returns:
             Self: The campaign.
         """
-        metadata = CampaignMetadata.load_by_id(id)
-
-        if metadata is None:
-            raise ValueError(f"Campaign '{id}' not found.")
-
-        return cls(metadata)
+        return cls(CampaignMetadata.load_by_id(id))
     
     # --- Methods ---
     def query_rag(self, prompt: str, collection_name: str | None = None, max_results: int = 5) -> list[QueryResult]:

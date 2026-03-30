@@ -4,6 +4,7 @@ import logging
 from fastapi import APIRouter, UploadFile, HTTPException, Depends, Path
 
 from .. import rag
+from ..campaign import Campaign
 from .upload import temporary_upload
 from .schemas import QueryRequest, LLMMessage, ExpandQueryRequest, \
     CreateCampaignRequest, CampaignResponse
@@ -22,7 +23,7 @@ def get_campaign_and_collection(
             description="The short name of the campaign"
         ),
         collection_name: str | None = None
-    ) -> tuple[rag.Campaign, str]:
+    ) -> tuple[Campaign, str]:
     """
     Dependency to get the campaign object and routed collection string.
 
@@ -32,10 +33,10 @@ def get_campaign_and_collection(
                                       the default collection name is used.
 
     Returns:
-        tuple[rag.Campaign, str]: The campaign object and collection string.
+        tuple[Campaign, str]: The campaign object and collection string.
     """
     try:
-        campaign = rag.Campaign.from_db_by_short_name(campaign_short_name)
+        campaign = Campaign.from_db_by_short_name(campaign_short_name)
     except ValueError as e:
         logger.error(f"Error getting campaign: {e}")
         raise HTTPException(status_code=404, detail="Campaign not found")
@@ -61,7 +62,7 @@ def create_campaign(request: CreateCampaignRequest) -> CampaignResponse:
     Returns:
         CampaignResponse: The created campaign.
     """
-    campaign = rag.campaign.Campaign.create(
+    campaign = Campaign.create(
         full_name=request.full_name,
         short_name=request.short_name,
         roleplay_system=request.roleplay_system,
@@ -90,7 +91,7 @@ def get_campaign_list() -> list[CampaignResponse]:
     Returns:
         list[CampaignResponse]: The list of campaigns.
     """
-    campaigns = rag.campaign.Campaign.list_all()
+    campaigns = Campaign.list_all()
     return [CampaignResponse(
         id=campaign.metadata.id,
         full_name=campaign.metadata.full_name,
@@ -104,7 +105,7 @@ def get_campaign_list() -> list[CampaignResponse]:
 
 @router_v2.put("/campaigns/{campaign_short_name}/documents", status_code=200)
 def update_document(file: UploadFile,
-                    campaign_and_collection: tuple[rag.Campaign, str] = Depends(get_campaign_and_collection)
+                    campaign_and_collection: tuple[Campaign, str] = Depends(get_campaign_and_collection)
                    ):
     """
     Store or update a document in the database.
@@ -139,7 +140,7 @@ def update_document(file: UploadFile,
 
 @router_v2.delete("/campaigns/{campaign_short_name}/documents/{filename}")
 def delete_document(filename: str,
-                    campaign_and_collection: tuple[rag.Campaign, str] = Depends(get_campaign_and_collection)
+                    campaign_and_collection: tuple[Campaign, str] = Depends(get_campaign_and_collection)
                    ) -> None:
     """
     Delete a document from the database.
@@ -168,7 +169,7 @@ def delete_document(filename: str,
 
 @router_v2.post("/campaigns/{campaign_short_name}/query")
 def query_campaign(request: QueryRequest,
-                   campaign_and_collection: tuple[rag.Campaign, str] = Depends(get_campaign_and_collection)
+                   campaign_and_collection: tuple[Campaign, str] = Depends(get_campaign_and_collection)
                    ) -> list[rag.QueryResult]:
     """
     Query the campaign RAG system.

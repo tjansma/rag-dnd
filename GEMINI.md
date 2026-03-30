@@ -28,6 +28,7 @@ The codebase is organized into domain-specific modules with a shared `core`:
 
 ```
 src/rag_dnd/
+    campaign.py        # Top-level Application Facade orchestrating core, rag, and game
     core/              # Shared infrastructure (ORMBase, CampaignMetadata, database sessions)
     rag/               # RAG-specific logic (embeddings, chunking, vector store, hybrid search)
     game/              # Structured D&D data (characters, sessions, players, assets)
@@ -47,7 +48,6 @@ src/rag_dnd/
 - `store.py`: `VectorStore` (ChromaDB + BM25 hybrid search).
 - `embeddings.py`: Embedding generation (jina-embeddings-v3).
 - `chunker.py`: Markdown → Chunks (heading-based splitting).
-- `campaign.py`: Campaign-scoped wrapper around Manager.
 
 ### Game Module (`game/`)
 - `enums.py`: `CharacterCategory`, `Disposition`, `RelationshipType`, `AssetType`, `PlayerType`.
@@ -76,13 +76,12 @@ src/rag_dnd/
     `_store_impl`/`_delete_impl` helpers for transactional integrity, and
     `expire_on_commit=False` for safe detached object access.
   - **Error Handling:** Domain exceptions (`DocumentExistsError`, `DocumentNotFoundError`)
-    throughout server routes and manager layer.
+  - **Modular Architecture (Phase 1):** Extracted `ORMBase`, `CampaignMetadata`, and database engine out of `rag/` into `core/`. Established `Campaign` as a top-level Application Facade to cleanly orchestrate RAG and game logic.
 
-- **In Progress (v0.4: Structured D&D Data):**
-  - **Module Restructuring:** Extracting `ORMBase`, `CampaignMetadata`, and `database.py` from `rag/` into new `core/` module.
-  - **Game Data Models:** 11 new SQLAlchemy models in `game/` for characters, sessions, players, assets, and link tables.
-  - **RAG Integration:** Linking `Document` and `Chunk` models to game entities via FK's and `ChunkCharacter` entity-linking table.
-  - **Data Model Design:** See `doc/prompt_engine/` for detailed specifications.
+- **In Progress (v0.4: Structured D&D Data - Phase 2):**
+  - **Game Data Models:** Implementing 5 enums in `game/enums.py` and 11 new SQLAlchemy models in `game/models.py` (for characters, sessions, players, assets, and link tables).
+  - **Pragmatic Monolith:** Implementing relationships across `rag` and `game` modules using string-based ORM references (e.g., `orm.relationship("Chunk")`) and `backref` to guarantee data integrity via Foreign Keys without triggering Python circular imports.
+  - **Data Model Design:** See `doc/v04_data_model.md` for the entity mapping and `doc/v04_implementation_plan.md` for the detailed technical steps. Additional context is in `doc/prompt_engine/`.
 
 - **Planned:**
   - **API/CLI Rollout:** CRUD endpoints and CLI commands for all game models (phased).

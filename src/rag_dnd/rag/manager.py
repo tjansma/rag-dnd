@@ -10,8 +10,8 @@ from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session, joinedload
 
 from ..config import Config
+from ..core import get_session
 
-from .database import get_session
 from .embeddings import get_embedding_instance
 from .exceptions import DocumentExistsError, DocumentNotFoundError
 from .llm import get_llm

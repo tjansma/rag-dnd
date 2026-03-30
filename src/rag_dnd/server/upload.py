@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import shutil
 
-from typing import Iterator
+from typing import Generator
 
 from fastapi import UploadFile
 
@@ -53,7 +53,7 @@ def receive_file(file: UploadFile) -> Path:
     return Path(file_path)
 
 @contextmanager
-def temporary_upload(file: UploadFile) -> Iterator[Path]:
+def temporary_upload(file: UploadFile) -> Generator[Path, None, None]:
     """
     Receive a file and store it in the upload directory.
     Erase the file when the context manager is exited.
