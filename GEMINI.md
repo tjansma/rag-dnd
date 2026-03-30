@@ -22,6 +22,40 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **SQLite:** Stores full "Parent" text chunks (Scenes/Sessions).
   - **ChromaDB:** Stores "Child" vector embeddings (Sliding window of 3 sentences).
 
+## Module Structure
+
+The codebase is organized into domain-specific modules with a shared `core`:
+
+```
+src/rag_dnd/
+    core/              # Shared infrastructure (ORMBase, CampaignMetadata, database sessions)
+    rag/               # RAG-specific logic (embeddings, chunking, vector store, hybrid search)
+    game/              # Structured D&D data (characters, sessions, players, assets)
+    server/            # FastAPI backend (routes, schemas, dependencies)
+    client/            # Client library (ClientConfig, API client, transcript)
+    cli/               # CLI tool (Click-based admin interface)
+    hooks/             # Gemini CLI hooks (context injection, logging)
+```
+
+### Core Module (`core/`)
+- `database.py`: SQLAlchemy engine singleton, session management (`get_session()`), `init_db()`.
+- `models.py`: `ORMBase` (declarative base), `CampaignMetadata` (shared across rag & game).
+
+### RAG Module (`rag/`)
+- `models.py`: `Collection`, `Document`, `Chunk`, `Sentence`, `QueryResult`.
+- `manager.py`: High-level RAG operations (store, delete, query).
+- `store.py`: `VectorStore` (ChromaDB + BM25 hybrid search).
+- `embeddings.py`: Embedding generation (jina-embeddings-v3).
+- `chunker.py`: Markdown → Chunks (heading-based splitting).
+- `campaign.py`: Campaign-scoped wrapper around Manager.
+
+### Game Module (`game/`)
+- `enums.py`: `CharacterCategory`, `Disposition`, `RelationshipType`, `AssetType`, `PlayerType`.
+- `models.py`: All structured D&D data models:
+  - **Standalone:** `Player` (global), `Character`, `Asset`, `Session`, `Turn`.
+  - **Link tables:** `PlayerCharacter`, `CharacterRelationship`, `CharacterAsset`,
+    `TurnCharacter`, `SessionAsset`, `ChunkCharacter`.
+
 ## Current Status (Mar 2026)
 
 - **Fully Implemented:**
@@ -44,8 +78,16 @@ The primary goal of this project is to integrate with the **Gemini CLI** via a *
   - **Error Handling:** Domain exceptions (`DocumentExistsError`, `DocumentNotFoundError`)
     throughout server routes and manager layer.
 
-- **In Progress / Planned:**
+- **In Progress (v0.4: Structured D&D Data):**
+  - **Module Restructuring:** Extracting `ORMBase`, `CampaignMetadata`, and `database.py` from `rag/` into new `core/` module.
+  - **Game Data Models:** 11 new SQLAlchemy models in `game/` for characters, sessions, players, assets, and link tables.
+  - **RAG Integration:** Linking `Document` and `Chunk` models to game entities via FK's and `ChunkCharacter` entity-linking table.
+  - **Data Model Design:** See `doc/prompt_engine/` for detailed specifications.
+
+- **Planned:**
+  - **API/CLI Rollout:** CRUD endpoints and CLI commands for all game models (phased).
   - **Prompt Engine:** Server-side rendering of system prompts with character sheet injection.
+  - **Transcript Migration:** Move session transcripts from client-side `transcript.db` to server-side `Session`/`Turn` models.
 
 ## Setup & Usage
 
@@ -74,6 +116,7 @@ uv run rag-server
 
 - **`doc/todo.md`**: Current technical task list and v0.x roadmap.
 - **`doc/roadmap.md`**: Long-term vision and feature requests.
-- **`doc/campaign_structure_design.md`**: Design document for the upcoming Multi-Campaign refactor.
+- **`doc/prompt_engine/`**: Design documents for structured data, character system, and prompt engine.
+- **`doc/campaign_structure_design.md`**: Design document for the Multi-Campaign architecture.
 - **`doc/llms.txt`**: References for Gemini CLI integration.
 - **`doc/fastmcp.txt`**: Documentation for FastMCP module.
