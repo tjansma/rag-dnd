@@ -20,14 +20,40 @@ class CampaignMetadata(ORMBase):
     """Class to represent a campaign."""
     __tablename__ = "campaign_metadata"
 
-    id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
-    full_name: orm.Mapped[str] = orm.mapped_column(sa.String)
-    short_name: orm.Mapped[str] = orm.mapped_column(sa.String, unique=True)
-    system: orm.Mapped[str] = orm.mapped_column(sa.String)
-    language: orm.Mapped[str] = orm.mapped_column(sa.String)
-    active_summary_file: orm.Mapped[str | None] = orm.mapped_column(sa.String)
-    session_log_file: orm.Mapped[str | None] = orm.mapped_column(sa.String)
-    extensions: orm.Mapped[dict[str, Any] | None] = orm.mapped_column(sa.JSON)
+    id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+                                            primary_key=True,
+                                            comment="Campaign ID")
+    full_name: orm.Mapped[str] = orm.mapped_column(sa.String,
+                                                   comment="Campaign full name")
+    short_name: orm.Mapped[str] = orm.mapped_column(sa.String,
+                                                    unique=True,
+                                                    comment="Campaign short name")
+    system: orm.Mapped[str] = orm.mapped_column(sa.String,
+                                                comment="Campaign system")
+    language: orm.Mapped[str] = orm.mapped_column(sa.String,
+                                                  comment="Campaign language")
+    active_summary_file: orm.Mapped[str | None] = orm.mapped_column(
+        sa.String,
+        comment="Active summary file")
+    session_log_file: orm.Mapped[str | None] = orm.mapped_column(
+        sa.String,
+        comment="Session log file")
+    current_ingame_date: orm.Mapped[str | None] = orm.mapped_column(
+        sa.String,
+        nullable=True,
+        comment="Current ingame date")
+    latest_session_id: orm.Mapped[int | None] = orm.mapped_column(
+        sa.ForeignKey("game_sessions.id"),
+        nullable=True,
+        comment="Latest session id")
+    extensions: orm.Mapped[dict[str, Any] | None] = orm.mapped_column(
+        sa.JSON,
+        comment="Campaign extensions")
+
+    latest_session: orm.Mapped["GameSession"] = orm.relationship(
+        "GameSession",
+        foreign_keys=[latest_session_id],
+        uselist=False)
     
     @classmethod
     def load_by_id(cls, id: int) -> Self:

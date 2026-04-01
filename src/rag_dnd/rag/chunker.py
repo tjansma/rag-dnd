@@ -10,7 +10,7 @@ import re
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 import nltk
 
-from .models import Document, Chunk, Sentence
+from .models import RAGDocument, Chunk, Sentence
 
 def load_document_text(source_file: Path) -> str:
     """
@@ -63,12 +63,12 @@ class Chunker:
         
         self.strategy = strategy
 
-    def chunk(self, document: Document, source_file: Path) -> List[Chunk]:
+    def chunk(self, document: RAGDocument, source_file: Path) -> List[Chunk]:
         """
         Chunks the text based on the strategy.
         
         Args:
-            document (Document): The document to chunk.
+            document (RAGDocument): The document to chunk.
             source_file (Path): The path to the source file on disk.
         
         Returns:
@@ -102,7 +102,7 @@ class Chunker:
         logger.debug(f"Creating chunks from {len(langchain_docs)} documents.")
         chunks = []
         for langchain_doc in langchain_docs:
-            chunk = Chunk(parent_document=document,
+            chunk = Chunk(parent_rag_document=document,
                           text=langchain_doc.page_content,
                           chunk_hash=sha256(
                             langchain_doc.page_content.encode()).hexdigest())

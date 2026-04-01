@@ -1,30 +1,37 @@
-# Data Model: v0.4 Structured D&D Data (Definitief)
+# Data Model: v0.4 Structured D&D Data (Geïmplementeerd)
 
 ## ER Diagram
 
 ```mermaid
 erDiagram
     CampaignMetadata ||--o{ Collection : "has"
-    CampaignMetadata ||--o{ Character : "has"
-    CampaignMetadata ||--o{ Asset : "has"
-    CampaignMetadata ||--o{ Session : "has"
-    Character ||--o{ CharacterRelationship : "from"
-    Character ||--o{ CharacterRelationship : "to"
-    Character ||--o{ CharacterAsset : "linked"
-    Character ||--o{ TurnCharacter : "acts in"
-    Character ||--o{ PlayerCharacter : "played by"
-    Character ||--o{ ChunkCharacter : "mentioned in"
+    CampaignMetadata ||--o{ GameCharacter : "has"
+    CampaignMetadata ||--o{ CampaignAsset : "links to"
+    CampaignMetadata ||--|| GameSession : "latest"
+    CampaignMetadata ||--o{ GameSession : "has"
+    GameCharacter ||--o{ CharacterRelationship : "from"
+    GameCharacter ||--o{ CharacterRelationship : "to"
+    GameCharacter ||--o{ CharacterAsset : "linked"
+    GameCharacter ||--o{ TurnCharacter : "acts in"
+    GameCharacter ||--o{ PlayerCharacter : "played by"
+    GameCharacter ||--o{ ChunkCharacter : "mentioned in"
+    GameCharacter ||--o{ GameCharacterRAGDocument : "described by"
     Player ||--o{ PlayerCharacter : "plays"
+    Player ||--o{ Turn : "performs"
+    Asset ||--o{ CampaignAsset : "linked"
     Asset ||--o{ CharacterAsset : "linked"
     Asset ||--o{ SessionAsset : "linked"
-    Asset ||--o{ Document : "described by"
-    Session ||--o{ Turn : "contains"
-    Session ||--o{ SessionAsset : "linked"
-    Session ||--o{ PlayerCharacter : "during"
-    Session ||--o{ Document : "logged by"
+    Asset ||--o{ AssetRAGDocument : "described by"
+    GameSession ||--o{ Turn : "contains"
+    GameSession ||--o{ SessionAsset : "linked"
+    GameSession ||--o{ PlayerCharacter : "during"
+    GameSession ||--o{ GameSessionRAGDocument : "logged by"
     Turn ||--o{ TurnCharacter : "involves"
-    Collection ||--o{ Document : "contains"
-    Document ||--o{ Chunk : "split into"
+    Collection ||--o{ RAGDocument : "contains"
+    RAGDocument ||--o{ Chunk : "split into"
+    RAGDocument ||--o{ GameCharacterRAGDocument : "links to"
+    RAGDocument ||--o{ GameSessionRAGDocument : "links to"
+    RAGDocument ||--o{ AssetRAGDocument : "links to"
     Chunk ||--o{ ChunkCharacter : "mentions"
 
     Player {
@@ -40,32 +47,32 @@ erDiagram
         str short_name UK
         str system
         str language
-        str active_summary_file
-        str session_log_file
-        json extensions
-        str current_location "NEW nullable"
-        str current_date "NEW nullable"
-        int active_session_id "NEW nullable FK"
+        str active_summary_file "nullable"
+        str session_log_file "nullable"
+        str current_ingame_date "nullable"
+        int latest_session_id "nullable FK"
+        json extensions "nullable"
     }
 
-    Character {
+    GameCharacter {
         int id PK
         int campaign_id FK
         str name "UK per campaign"
         str category "ENUM"
-        str race
-        str gender
-        str sexual_orientation
-        str alignment
-        str occupation
+        str race "nullable"
+        str gender "nullable"
+        int age "nullable"
+        str sexual_orientation "nullable"
+        str alignment "nullable"
+        str occupation "nullable"
         bool is_active
         bool is_alive
-        str location
-        str faction
-        str disposition "ENUM"
+        str location "nullable"
+        str faction "nullable"
+        str disposition "ENUM, nullable"
         bool known_by_party
-        text description "Character Bible"
-        json data "stats-persona-triggers"
+        str description "nullable"
+        json data "nullable"
     }
 
     PlayerCharacter {
@@ -85,65 +92,90 @@ erDiagram
 
     Asset {
         int id PK
-        int campaign_id FK
-        str filename
-        str file_path
+        str title
+        str uri
         str asset_type "ENUM"
-        str mime_type
-        str title "nullable"
+        str mime_type "nullable"
         str description "nullable"
         json tags "nullable"
+        datetime created
+        datetime last_updated
+    }
+    
+    CampaignAsset {
+        int id PK
+        int campaign_id FK
+        int asset_id FK
+        str description "nullable"
     }
 
     CharacterAsset {
         int id PK
         int character_id FK
         int asset_id FK
-        str role "portrait-depicted_in-performer"
+        str description "nullable"
     }
 
-    Session {
+    GameSession {
         int id PK
         int campaign_id FK
-        int session_number "UK per campaign"
+        int campaign_session "UK per campaign"
         str guid "UK"
-        datetime started_at
-        datetime ended_at "nullable"
+        datetime session_date
         str title "nullable"
-        text summary "nullable"
+        str summary "nullable"
     }
 
     Turn {
         int id PK
         int session_id FK
-        int turn_number
+        int turn_number "UK per session"
         datetime timestamp
-        text user_prompt
-        text ai_response
+        int player_id FK
+        str content
     }
 
     TurnCharacter {
         int id PK
         int turn_id FK
         int character_id FK
-        str role "actor-target-mentioned"
+        str role
+        str description "nullable"
     }
 
     SessionAsset {
         int id PK
         int session_id FK
         int asset_id FK
-        str context "nullable"
+        str description "nullable"
     }
 
-    Document {
+    RAGDocument {
         int id PK
-        str file_hash
-        str custom_filename
+        str file_hash "UK per collection"
+        str custom_filename "UK per collection"
         int collection_id FK
-        int session_id FK "NEW nullable"
-        int asset_id FK "NEW nullable"
-        int character_id FK "NEW nullable"
+    }
+    
+    GameCharacterRAGDocument {
+        int id PK
+        int character_id FK
+        int rag_document_id FK
+        str description "nullable"
+    }
+
+    GameSessionRAGDocument {
+        int id PK
+        int session_id FK
+        int rag_document_id FK
+        str description "nullable"
+    }
+    
+    AssetRAGDocument {
+        int id PK
+        int asset_id FK
+        int rag_document_id FK
+        str description "nullable"
     }
 
     Chunk {
@@ -171,171 +203,230 @@ erDiagram
 ## Enums
 
 ```python
-class CharacterCategory(str, enum.Enum):
-    PC = "PC"
-    PARTY_MEMBER = "PARTY_MEMBER"
-    NPC = "NPC"
-    PASSERBY = "PASSERBY"
-    MONSTER = "MONSTER"
+class CharacterType(str, Enum):
+    PC = "pc"
+    PARTY_MEMBER = "party_member"
+    NPC = "npc"
+    PASSERBY = "passerby"
+    MONSTER = "monster"
 
-class Disposition(str, enum.Enum):
+
+class Disposition(str, Enum):
     FRIENDLY = "friendly"
     NEUTRAL = "neutral"
     HOSTILE = "hostile"
     UNKNOWN = "unknown"
 
-class RelationshipType(str, enum.Enum):
+
+class RelationshipType(str, Enum):
     ALLY = "ally"
     RIVAL = "rival"
+    ACQUAINTANCE = "acquaintance"
+    FRIEND = "friend"
     FAMILY = "family"
+    PARENT = "parent"
+    CHILD = "child"
+    SIBLING = "sibling"
+    SPOUSE = "spouse"
+    EX_SPOUSE = "ex_spouse"
+    LOVER = "lover"
+    EX_LOVER = "ex_lover"
+    COLLEAGUE = "colleague"
     EMPLOYER = "employer"
-    ROMANTIC = "romantic"
+    EMPLOYEE = "employee"
+    BUSINESS_PARTNER = "business_partner"
+    FRIEND_WITH_BENEFITS = "friend_with_benefits"
     ENEMY = "enemy"
+    MENTOR = "mentor"
+    APPRENTICE = "apprentice"
+    DEITY = "deity"
+    WORSHIPPER = "worshipper"
+    SERVANT = "servant"
+    PATRON = "patron"
+    WARLOCK = "warlock"
+    CAPTOR = "captor"
+    PRISONER = "prisoner"
+    SLAVE = "slave"
+    MASTER = "master"
     NEUTRAL = "neutral"
+    GUARDIAN = "guardian"
+    WARD = "ward"
+    CREATOR = "creator"
+    CREATION = "creation"
+    PET = "pet"
+    VICTIM = "victim"
+    PERPETRATOR = "perpetrator"
+    SAVIOR = "savior"
+    RESCUEE = "rescuee"
+    HANDLER = "handler"
+    INFORMANT = "informant"
+    DEBTOR = "debtor"
+    CREDITOR = "creditor"
+    IDOL = "idol"
+    FAN = "fan"
 
-class AssetType(str, enum.Enum):
+
+class AssetType(str, Enum):
     IMAGE = "image"
+    VIDEO = "video"
     AUDIO = "audio"
+    TEXT = "text"
     MAP = "map"
     DOCUMENT = "document"
+    GRAPH = "graph"
+    TABLE = "table"
+    OTHER = "other"
 
-class PlayerType(str, enum.Enum):
+
+class PlayerType(str, Enum):
     HUMAN = "human"
     AI = "ai"
 ```
 
 ---
 
-## Modellen (11 nieuw + 3 gewijzigd)
+## Modellen
 
 ### `Player` — globaal, niet campaign-scoped
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `name` | String | UK |
-| `player_type` | Enum | PlayerType |
-| `ai_model` | String | nullable — bv. "gemini-2.5-pro" |
+
+| Kolom         | Type    | Constraint                      |
+| ------------- | ------- | ------------------------------- |
+| `id`          | Integer | PK                              |
+| `name`        | String  | UK                              |
+| `player_type` | Enum    | PlayerType                      |
+| `ai_model`    | String  | nullable — bv. "gemini-2.5-pro" |
 
 > [!IMPORTANT]
-> Player is **globaal** — dezelfde speler kan in meerdere campaigns spelen. De koppeling met campaigns loopt via `PlayerCharacter`.
+> Player is **globaal** — dezelfde speler kan in meerdere campaigns spelen. De koppeling met campaigns loopt via `PlayerCharacter` en `Turn`.
 
-### `Character`
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `campaign_id` | Integer | FK → campaign_metadata.id |
-| `name` | String | UK per campaign |
-| `category` | Enum | CharacterCategory |
-| `race` | String | |
-| `gender` | String | |
-| `sexual_orientation` | String | |
-| `alignment` | String | nullable |
-| `occupation` | String | nullable |
-| `is_active` | Boolean | default True |
-| `is_alive` | Boolean | default True |
-| `location` | String | nullable |
-| `faction` | String | nullable |
-| `disposition` | Enum | Disposition |
-| `known_by_party` | Boolean | default False |
-| `description` | Text | nullable |
-| `data` | JSON | nullable |
+### `CampaignMetadata`
+
+Heeft naast de bestaande RAG velden de volgende nieuwe state velden voor de campagne status.
+
+| Kolom                 | Type                               |
+| --------------------- | ---------------------------------- |
+| `current_ingame_date` | String, nullable                   |
+| `latest_session_id`   | Integer, nullable FK → game_sessions.id |
+
+### `GameCharacter`
+
+| Kolom                | Type    | Constraint                |
+| -------------------- | ------- | ------------------------- |
+| `id`                 | Integer | PK                        |
+| `campaign_id`        | Integer | FK → campaign_metadata.id |
+| `name`               | String  | UK per campaign           |
+| `category`           | Enum    | CharacterType             |
+| `race`               | String  | nullable                  |
+| `gender`             | String  | nullable                  |
+| `age`                | Integer | nullable                  |
+| `sexual_orientation` | String  | nullable                  |
+| `alignment`          | String  | nullable                  |
+| `occupation`         | String  | nullable                  |
+| `is_active`          | Boolean | default True              |
+| `is_alive`           | Boolean | default True              |
+| `location`           | String  | nullable                  |
+| `faction`            | String  | nullable                  |
+| `disposition`        | Enum    | Disposition, nullable     |
+| `known_by_party`     | Boolean | default False             |
+| `description`        | String  | nullable                  |
+| `data`               | JSON    | nullable                  |
 
 ### `PlayerCharacter`
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `player_id` | Integer | FK → players.id |
-| `character_id` | Integer | FK → characters.id |
-| `session_id` | Integer | FK → sessions.id, nullable (null = standaard) |
+
+| Kolom          | Type    | Constraint                                    |
+| -------------- | ------- | --------------------------------------------- |
+| `id`           | Integer | PK                                            |
+| `player_id`    | Integer | FK → players.id                               |
+| `character_id` | Integer | FK → game_characters.id                        |
+| `session_id`   | Integer | FK → game_sessions.id, nullable (null = standaard) |
 
 ### `CharacterRelationship` — directioneel (A→B ≠ B→A)
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `from_character_id` | Integer | FK → characters.id |
-| `to_character_id` | Integer | FK → characters.id |
-| `relationship_type` | Enum | RelationshipType |
-| `description` | String | nullable |
 
-### `Asset`
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `campaign_id` | Integer | FK → campaign_metadata.id |
-| `filename` | String | |
-| `file_path` | String | relatief pad |
-| `asset_type` | Enum | AssetType |
-| `mime_type` | String | |
-| `title` | String | nullable |
-| `description` | String | nullable |
-| `tags` | JSON | nullable |
+| Kolom               | Type    | Constraint         |
+| ------------------- | ------- | ------------------ |
+| `id`                | Integer | PK                 |
+| `from_character_id` | Integer | FK → game_characters.id |
+| `to_character_id`   | Integer | FK → game_characters.id |
+| `relationship_type` | Enum    | RelationshipType   |
+| `description`       | String  | nullable           |
 
-### `CharacterAsset` (M:N)
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `character_id` | Integer | FK → characters.id |
-| `asset_id` | Integer | FK → assets.id |
-| `role` | String | "portrait", "depicted_in", "performer" |
+### `Asset` — Global Asset Library
 
-### `Session`
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `campaign_id` | Integer | FK → campaign_metadata.id |
-| `session_number` | Integer | UK per campaign |
-| `guid` | String | UK |
-| `started_at` | DateTime | |
-| `ended_at` | DateTime | nullable |
-| `title` | String | nullable |
-| `summary` | Text | nullable |
+| Kolom          | Type     | Constraint                |
+| -------------- | -------- | ------------------------- |
+| `id`           | Integer  | PK                        |
+| `title`        | String   |                           |
+| `uri`          | String   | relatief pad of URL       |
+| `asset_type`   | Enum     | AssetType                 |
+| `mime_type`    | String   | nullable                  |
+| `description`  | String   | nullable                  |
+| `tags`         | JSON     | nullable                  |
+| `created`      | DateTime | automatic                 |
+| `last_updated` | DateTime | automatic                 |
+
+> [!TIP]
+> Assets zijn onafhankelijk van campagnes om hergebruik via `CampaignAsset` mogelijk te maken (bijv. globale maps/monsters).
+
+### Koppeltabellen voor Assets (M:N)
+
+| Tabel | Omschrijving | FKs |
+| :--- | :--- | :--- |
+| `CampaignAsset` | Koppelt Asset aan een/meerdere campagnes. | `campaign_id`, `asset_id` |
+| `CharacterAsset` | Bijv. een portret voor een specifiek personage. | `character_id`, `asset_id` |
+| `SessionAsset` | Asset die tijdens een sessie ter sprake kwam. | `session_id`, `asset_id` |
+
+*(Elke tabel bevat daarnaast nog een Optionele `description: str` kolom)*
+
+### `GameSession`
+
+| Kolom            | Type     | Constraint                |
+| ---------------- | -------- | ------------------------- |
+| `id`             | Integer  | PK                        |
+| `campaign_id`    | Integer  | FK → campaign_metadata.id |
+| `campaign_session`| Integer | UK per campaign           |
+| `guid`           | String   | UK                        |
+| `session_date`   | DateTime | automatic                 |
+| `title`          | String   | nullable                  |
+| `summary`        | String   | nullable                  |
 
 ### `Turn`
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `session_id` | Integer | FK → sessions.id |
-| `turn_number` | Integer | |
-| `timestamp` | DateTime | |
-| `user_prompt` | Text | |
-| `ai_response` | Text | |
+
+| Kolom         | Type     | Constraint       |
+| ------------- | -------- | ---------------- |
+| `id`          | Integer  | PK               |
+| `session_id`  | Integer  | FK → game_sessions.id |
+| `turn_number` | Integer  | UK per session   |
+| `timestamp`   | DateTime | automatic        |
+| `player_id`   | Integer  | FK → players.id |
+| `content`     | String   | Een log-bericht/actie  |
 
 ### `TurnCharacter` (M:N)
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `turn_id` | Integer | FK → turns.id |
-| `character_id` | Integer | FK → characters.id |
-| `role` | String | "actor", "target", "mentioned" |
 
-### `SessionAsset` (M:N)
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `session_id` | Integer | FK → sessions.id |
-| `asset_id` | Integer | FK → assets.id |
-| `context` | String | nullable |
+| Kolom          | Type    | Constraint                     |
+| -------------- | ------- | ------------------------------ |
+| `id`           | Integer | PK                             |
+| `turn_id`      | Integer | FK → turns.id                  |
+| `character_id` | Integer | FK → game_characters.id             |
+| `role`         | String  | "actor", "target", "mentioned" |
+| `description`  | String  | nullable |
+
+### `RAGDocument` Genormaliseerde Relaties (M:N)
+
+| Tabel | Omschrijving | FKs |
+| :--- | :--- | :--- |
+| `GameCharacterRAGDocument` | Linkt RAG data aan characters. | `character_id`, `rag_document_id` |
+| `GameSessionRAGDocument` | Linkt RAG data (logs) aan sessies. | `session_id`, `rag_document_id` |
+| `AssetRAGDocument` | Linkt RAG data (descriptions) aan assets. | `asset_id`, `rag_document_id` |
+
+*(Elke tabel bevat daarnaast nog een optionele `description: str` kolom)*
 
 ### `ChunkCharacter` (M:N, entity-linking)
-| Kolom | Type | Constraint |
-|---|---|---|
-| `id` | Integer | PK |
-| `chunk_id` | Integer | FK → chunks.id |
-| `character_id` | Integer | FK → characters.id |
 
-### Wijzigingen: `CampaignMetadata` +3 kolommen
-| Kolom | Type |
-|---|---|
-| `current_location` | String, nullable |
-| `current_date` | String, nullable |
-| `active_session_id` | Integer, nullable FK → sessions.id |
-
-### Wijzigingen: `Document` +3 FK's
-| Kolom | Type | Betekenis |
-|---|---|---|
-| `session_id` | Integer, nullable FK | "log van sessie X" |
-| `asset_id` | Integer, nullable FK | "beschrijft asset X" |
-| `character_id` | Integer, nullable FK | "character bible van X" |
+| Kolom          | Type    | Constraint         |
+| -------------- | ------- | ------------------ |
+| `id`           | Integer | PK                 |
+| `chunk_id`     | Integer | FK → chunks.id     |
+| `character_id` | Integer | FK → game_characters.id |
 
 ---
 
@@ -373,8 +464,9 @@ ai_triggers:
 
 ---
 
-## Implementatie-aanpak
+## Implementatie-aanpak (Afgerond in Phase 2)
 
 > [!TIP]
-> **Stap 1:** Bouw alle modellen + enums + relationships in `models.py` → `create_all()` maakt het volledige schema.
-> **Stap 2+:** Ontsluiting (schemas, routes, CLI) iteratief per domein toevoegen.
+> **Stap 1:** Modellen geïmplementeerd en genormaliseerd (3NF).
+> **Stap 2:** SQLite `create_all` geverifieerd via RAG API calls (geen ambiguïteit).
+> **Stap 3:** Volgende fase is Data Migratie en API Development.

@@ -15,7 +15,7 @@ from ..core import get_session
 from .embeddings import get_embedding_instance
 from .exceptions import DocumentExistsError, DocumentNotFoundError
 from .llm import get_llm
-from .models import Document, Collection, Chunk, QueryResult
+from .models import RAGDocument, Collection, Chunk, QueryResult
 from .store import get_vector_store
 from .chunker import Chunker
 
@@ -105,7 +105,7 @@ def store_document(collection: Collection,
     # Create the Document object.
     # Important: 'custom_filename' is the persistent identifier in the DB,
     # even if 'filename' is a temporary uploaded file path.
-    document = Document(file_hash=file_hash,
+    document = RAGDocument(file_hash=file_hash,
                         custom_filename=custom_filename,
                         collection_id=collection.id)
 
@@ -186,7 +186,7 @@ def query(query: str,
     logger.debug(f"Retrieving relevant chunks from database: {config.content_database_url}")
     results = []
     chunks = session.query(Chunk)\
-        .options(joinedload(Chunk.parent_document))\
+        .options(joinedload(Chunk.parent_rag_document))\
         .filter(Chunk.id.in_(relevant_chunk_ids))\
         .all()
     chunks.sort(key=lambda c: relevant_chunk_ids.index(c.id))    
@@ -198,7 +198,7 @@ def query(query: str,
         results.append(
             QueryResult(
                 text=chunk.text, 
-                source_document=chunk.parent_document.custom_filename
+                source_document=chunk.parent_rag_document.custom_filename
             )
         )
 
@@ -233,7 +233,7 @@ def delete_document(collection: Collection,
         custom_filename = os.path.basename(filename)
 
     # Query the document by custom_filename
-    document = Document.load_by_custom_filename(custom_filename,
+    document = RAGDocument.load_by_custom_filename(custom_filename,
                                                 collection.id,
                                                 session)
 
@@ -292,7 +292,7 @@ def update_document(collection: Collection,
         custom_filename = file.name
 
     # Check if the document exists
-    document = Document.load_by_custom_filename(custom_filename,
+    document = RAGDocument.load_by_custom_filename(custom_filename,
                                                 collection.id,
                                                 session)
     

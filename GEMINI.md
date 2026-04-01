@@ -50,13 +50,12 @@ src/rag_dnd/
 - `chunker.py`: Markdown → Chunks (heading-based splitting).
 
 ### Game Module (`game/`)
-- `enums.py`: `CharacterCategory`, `Disposition`, `RelationshipType`, `AssetType`, `PlayerType`.
+- `enums.py`: `CharacterType`, `Disposition`, `RelationshipType`, `AssetType`, `PlayerType`.
 - `models.py`: All structured D&D data models:
-  - **Standalone:** `Player` (global), `Character`, `Asset`, `Session`, `Turn`.
-  - **Link tables:** `PlayerCharacter`, `CharacterRelationship`, `CharacterAsset`,
-    `TurnCharacter`, `SessionAsset`, `ChunkCharacter`.
+  - **Standalone:** `Player` (global), `GameCharacter`, `Asset`, `GameSession`, `Turn`.
+  - **Link tables:** `PlayerCharacter`, `CharacterRelationship`, `CampaignAsset`, `CharacterAsset`, `TurnCharacter`, `SessionAsset`, `ChunkCharacter`.
 
-## Current Status (Mar 2026)
+## Current Status (April 2026)
 
 - **Fully Implemented:**
   - **Core Logic:** Hybrid Search, Parent-Child Retrieval, GPU Acceleration.
@@ -77,16 +76,17 @@ src/rag_dnd/
     `expire_on_commit=False` for safe detached object access.
   - **Error Handling:** Domain exceptions (`DocumentExistsError`, `DocumentNotFoundError`)
   - **Modular Architecture (Phase 1):** Extracted `ORMBase`, `CampaignMetadata`, and database engine out of `rag/` into `core/`. Established `Campaign` as a top-level Application Facade to cleanly orchestrate RAG and game logic.
+  - **Structured D&D Data Models (v0.4):** Implemented 5 enums and 11 new SQLAlchemy models in `game/models.py` (characters, sessions, players, assets, junction tables).
+  - **Pragmatic Monolith & 3NF:** Seamlessly linked `rag`, `core`, and `game` domains using strict 3NF Junction Tables (`GameCharacterRAGDocument` etc.) and string-based ORM relationships to guarantee integrity while preventing circular dependencies.
 
-- **In Progress (v0.4: Structured D&D Data - Phase 2):**
-  - **Game Data Models:** Implementing 5 enums in `game/enums.py` and 11 new SQLAlchemy models in `game/models.py` (for characters, sessions, players, assets, and link tables).
-  - **Pragmatic Monolith:** Implementing relationships across `rag` and `game` modules using string-based ORM references (e.g., `orm.relationship("Chunk")`) and `backref` to guarantee data integrity via Foreign Keys without triggering Python circular imports.
-  - **Data Model Design:** See `doc/v04_data_model.md` for the entity mapping and `doc/v04_implementation_plan.md` for the detailed technical steps. Additional context is in `doc/prompt_engine/`.
+- **In Progress (API/CLI Rollout):**
+  - **Character API (Phase 5a):** Implementing CRUD endpoints (`routes_v2.py`) and schemas for `GameCharacter` and its relationships.
 
 - **Planned:**
-  - **API/CLI Rollout:** CRUD endpoints and CLI commands for all game models (phased).
-  - **Prompt Engine:** Server-side rendering of system prompts with character sheet injection.
-  - **Transcript Migration:** Move session transcripts from client-side `transcript.db` to server-side `Session`/`Turn` models.
+  - **Session & Turn API:** Endpoints to manage play sessions. 
+  - **Transcript Migration:** Move session transcripts from client-side `transcript.db` to server-side `GameSession`/`Turn` models.
+  - **Asset Management:** APIs for the Global Asset Library.
+  - **Prompt Engine (v0.5):** Server-side rendering of system prompts with auto-injected character state.
 
 ## Setup & Usage
 
