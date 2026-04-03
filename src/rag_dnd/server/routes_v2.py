@@ -314,7 +314,7 @@ def get_players(db_session: Session = Depends(database_session)) -> \
     
     return TypeAdapter(list[game.PlayerResponseSchema]).validate_python(players)
 
-@router_v2.get("/players/{int:player_id}",
+@router_v2.get("/players/{player_id}",
                response_model=game.PlayerResponseSchema)
 def get_player_by_id(player_id: int, 
                        db_session: Session = Depends(database_session)) -> \
@@ -345,7 +345,7 @@ def get_player_by_id(player_id: int,
     
     return TypeAdapter(game.PlayerResponseSchema).validate_python(player)
 
-@router_v2.get("/players/{str:player_name}",
+@router_v2.get("/players/name/{player_name}",
                response_model=game.PlayerResponseSchema)
 def get_player_by_name(player_name: str, 
                        db_session: Session = Depends(database_session)) -> \

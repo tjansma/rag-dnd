@@ -2,36 +2,22 @@
 Common client for interacting with the RAG server.
 """
 import requests
-from typing import List, Any
-from dataclasses import dataclass, asdict
+from typing import List, Any, Union
 
 from .config import ClientConfig
 from .transcript import get_or_create_session, get_last_turn
+from .models import (
+    CampaignResponse, 
+    QueryRequest, 
+    QueryResult,
+    HumanPlayerCreate,
+    AIPlayerCreate,
+    HumanPlayerResponse,
+    AIPlayerResponse
+)
 
-
-@dataclass
-class QueryRequest:
-    query: str
-    max_results: int = 5
-    collection_name: str | None = None
-
-
-@dataclass
-class QueryResult:
-    text: str
-    source_document: str
-
-
-@dataclass
-class CampaignResponse:
-    id: int
-    full_name: str
-    short_name: str
-    roleplay_system: str
-    language: str
-    active_summary_file: str | None
-    session_log_file: str | None
-    extensions: dict[str, Any] | None
+PlayerCreateType = Union[HumanPlayerCreate, AIPlayerCreate]
+PlayerResponseType = Union[HumanPlayerResponse, AIPlayerResponse]
 
 
 class RAGClient:
@@ -117,11 +103,11 @@ class RAGClient:
         query_request = QueryRequest(query=query_text,
                                      max_results=limit,
                                      collection_name=collection)
-        response = requests.post(url, json=asdict(query_request))
+        response = requests.post(url, json=query_request.model_dump())
         response.raise_for_status()
         
         data = response.json()
-        return [QueryResult(**item) for item in data]
+        return [QueryResult.model_validate(item) for item in data]
 
     def chat(self, query_text: str) -> str:
         """
@@ -182,7 +168,7 @@ class RAGClient:
         response.raise_for_status()
         
         data = response.json()
-        return [CampaignResponse(**item) for item in data]
+        return [CampaignResponse.model_validate(item) for item in data]
 
     def create_campaign(self, full_name: str, short_name: str, roleplay_system: str, language: str, active_summary_file: str | None = None, session_log_file: str | None = None, extensions: dict[str, Any] | None = None) -> CampaignResponse:
         """
@@ -216,7 +202,7 @@ class RAGClient:
         response = requests.post(url, json=payload)
         response.raise_for_status()
         
-        return CampaignResponse(**response.json())
+        return CampaignResponse.model_validate(response.json())
 
     def create_campaign_directory_structure(self) -> bool:
         """
@@ -234,3 +220,70 @@ class RAGClient:
             return True
         except OSError:
             return False
+
+    def get_players(self) -> List[PlayerResponseType]:
+        """
+        Get all players.
+        
+        Returns:
+            List[PlayerResponseType]: The list of players.
+        """
+        url = f"{self.config.base_url}/v2/players"
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        data = response.json()
+        results = []
+        for item in data:
+            if item.get("player_type") == "human":
+                results.append(HumanPlayerResponse.model_validate(item))
+            elif item.get("player_type") == "ai":
+                results.append(AIPlayerResponse.model_validate(item))
+        return results
+
+    def get_player(self, player_id: int = None, player_name: str = None) -> PlayerResponseType:
+        """
+        Get a player by ID or name.
+        
+        If both player_id and player_name are provided, player_id will be used.
+        At least one of player_id or player_name must be provided.
+        
+        Args:
+            player_id (int): The ID of the player. (optional)
+            player_name (str): The name of the player. (optional)
+            
+        Returns:
+            PlayerResponseType: The player.
+        """
+        if player_id is None and player_name is None:
+            raise ValueError("Either player_id or player_name must be provided.")
+        if player_id is not None:
+            url = f"{self.config.base_url}/v2/players/{player_id}"
+        else:
+            url = f"{self.config.base_url}/v2/players/name/{player_name}"
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        data = response.json()
+        if data.get("player_type") == "human":
+            return HumanPlayerResponse.model_validate(data)
+        return AIPlayerResponse.model_validate(data)
+        
+    def register_player(self, player: PlayerCreateType) -> PlayerResponseType:
+        """
+        Register a new player.
+        
+        Args:
+            player (PlayerCreateType): The player to register.
+            
+        Returns:
+            PlayerResponseType: The registered player.
+        """
+        url = f"{self.config.base_url}/v2/players"
+        response = requests.post(url, json=player.model_dump())
+        response.raise_for_status()
+        
+        data = response.json()
+        if data.get("player_type") == "human":
+            return HumanPlayerResponse.model_validate(data)
+        return AIPlayerResponse.model_validate(data)

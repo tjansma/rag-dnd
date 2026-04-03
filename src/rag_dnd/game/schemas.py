@@ -58,7 +58,7 @@ class AIPlayerCreate(PlayerCreateBase):
     ai_provider: str = Field(..., description="AI provider")
     ai_model: str = Field(..., description="AI model")
     system_prompt: str | None = Field(None, description="System prompt")
-    temperature: float = Field(0.7,
+    temperature: float | None = Field(None,
         description="AI Temperature (controls randomness of AI responses)")
 
 
@@ -121,7 +121,7 @@ class AIPlayerResponse(PlayerResponseBase):
     ai_provider: str = Field(..., description="AI provider")
     ai_model: str = Field(..., description="AI model")
     system_prompt: str | None = Field(None, description="System prompt")
-    temperature: float = Field(0.7,
+    temperature: float | None = Field(None,
         description="AI Temperature (controls randomness of AI responses)")
 
 

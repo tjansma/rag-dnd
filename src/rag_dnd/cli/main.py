@@ -6,9 +6,11 @@ from rich.table import Table
 import os
 from typing import Optional
 import sys
+import requests
 
 from ..client import RAGClient, list_sessions, get_session_transcript, \
-    session_to_markdown, ClientConfig, transcript_summarize
+    session_to_markdown, ClientConfig, transcript_summarize, prettify
+from ..client.models import HumanPlayerCreate, AIPlayerCreate
 
 if os.name == 'nt':
     sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore
@@ -21,11 +23,16 @@ llm_app = typer.Typer(help="Manage LLM", no_args_is_help=True)
 rag_app = typer.Typer(help="Manage RAG knowledge base", no_args_is_help=True)
 session_app = typer.Typer(help="Manage session transcripts", no_args_is_help=True)
 campaign_app = typer.Typer(help="Manage campaigns", no_args_is_help=True)
+player_app = typer.Typer(help="Manage players", no_args_is_help=True)
 
 app.add_typer(llm_app, name="llm")
 app.add_typer(rag_app, name="rag")
 app.add_typer(session_app, name="session")
 app.add_typer(campaign_app, name="campaign")
+app.add_typer(player_app, name="player")
+
+player_add_app = typer.Typer(help="Add players", no_args_is_help=True)
+player_app.add_typer(player_add_app, name="add")
 
 console = Console()
 
@@ -400,5 +407,111 @@ def campaign_activate(short_name: str):
         client.config._campaign = short_name
         client.config.save_active_campaign()
         console.print(f"[bold green]Success![/bold green] Campaign set as active.")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@player_app.command("list")
+def player_list():
+    """
+    List all players in the active campaign.
+
+    Returns:
+        None
+    """
+    try:
+        client = _get_client()
+        players = client.get_players()
+        
+        table = Table(title="Players")
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Name", style="magenta")
+        table.add_column("Type", style="green")
+        
+        for player in players:
+            table.add_row(str(player.id), player.name, player.player_type)
+            
+        console.print(table)
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@player_app.command("show")
+def player_show(player_id_or_name: str = typer.Argument(..., 
+        help="The ID or name of the player")):
+    """
+    Get a player by ID or name.
+
+    Args:
+        player_id_or_name (str): The ID or name of the player. (required)
+
+    Returns:
+        None
+    """
+    player_id = None
+    player_name = None
+    if player_id_or_name.isdigit():
+        player_id = int(player_id_or_name)
+    else:
+        player_name = player_id_or_name
+
+    try:
+        client = _get_client()
+        player = client.get_player(player_id, player_name)
+    except requests.exceptions.HTTPError as e:
+        error_detail = e.response.json().get("detail", str(e))
+        console.print(f"[bold red]Error:[/bold red] {error_detail}")
+        return
+
+    table = Table(title="Player")
+    table.add_column("Key", style="cyan", no_wrap=True)
+    table.add_column("Value", style="magenta")
+    for key, value in player.model_dump().items():
+        table.add_row(prettify(key), str(value))
+    console.print(table)
+
+@player_add_app.command("human")
+def player_add_human(
+    name: str = typer.Argument(..., help="The name of the player"),
+    email: str = typer.Argument(..., help="Human player email"),
+    age: Optional[int] = typer.Option(None, help="Human player age"),
+    gender: Optional[str] = typer.Option(None, help="Human player gender"),
+    availability: Optional[str] = typer.Option(None, help="Human player availability"),
+    notes: Optional[str] = typer.Option(None, help="Human player notes")
+):
+    """Add a human player to the active campaign."""
+    try:
+        client = _get_client()
+        player = HumanPlayerCreate(
+            name=name,
+            email=email,
+            age=age,
+            gender=gender,
+            availability=availability,
+            notes=notes
+        )
+        registered_player = client.register_player(player)
+        console.print(f"[bold green]Success![/bold green] Human player added: {registered_player.name}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@player_add_app.command("ai")
+def player_add_ai(
+    name: str = typer.Argument(..., help="The name of the player"),
+    ai_provider: str = typer.Argument(..., help="AI provider"),
+    ai_model: str = typer.Argument(..., help="AI model"),
+    system_prompt: Optional[str] = typer.Option(None, help="System prompt"),
+    temperature: Optional[float] = typer.Option(None, help="AI Temperature")
+):
+    """Add an AI player to the active campaign."""
+    try:
+        client = _get_client()
+        player = AIPlayerCreate(
+            name=name,
+            ai_provider=ai_provider,
+            ai_model=ai_model,
+            system_prompt=system_prompt,
+            temperature=temperature
+        )
+        registered_player = client.register_player(player)
+        console.print(f"[bold green]Success![/bold green] AI player added: {registered_player.name}")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
