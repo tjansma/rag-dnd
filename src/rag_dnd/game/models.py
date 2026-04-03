@@ -19,20 +19,73 @@ class Player(ORMBase):
     __tablename__ = "players"
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True,
-                                            comment="Player ID")
+        primary_key=True,
+        comment="Player ID")
     name: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                              nullable=False,
-                                              unique=True,
-                                              comment="Player name")
+        nullable=False,
+        unique=True,
+        comment="Player name")
     player_type: orm.Mapped[PlayerType] = orm.mapped_column(
-                                              sa.Enum(PlayerType),
-                                              nullable=False,
-                                              comment="Player type"
-                                          )
-    ai_model: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                                         nullable=True,
-                                                         comment="AI model")
+        sa.Enum(PlayerType),
+        nullable=False,
+        comment="Player type")
+
+    __mapper_args__ = {
+        "polymorphic_abstract": True,
+        "polymorphic_on": "player_type"
+    }
+    
+
+class HumanPlayer(Player):
+    __tablename__ = "human_players"
+
+    id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("players.id"), 
+        primary_key=True,
+        comment="Player ID")
+    email: orm.Mapped[str] = orm.mapped_column(sa.String,
+        nullable=False,
+        unique=True,
+        comment="Human player email")
+    age: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        nullable=True,
+        comment="Human player age")
+    gender: orm.Mapped[str] = orm.mapped_column(sa.String,
+        nullable=True,
+        comment="Human player gender")
+    availability: orm.Mapped[str] = orm.mapped_column(sa.String,
+        nullable=True,
+        comment="Human player availability")
+    notes: orm.Mapped[str] = orm.mapped_column(sa.String,
+        nullable=True,
+        comment="Human player notes")
+
+    __mapper_args__ = {
+        "polymorphic_identity": PlayerType.HUMAN,
+    }
+
+
+class AIPlayer(Player):
+    __tablename__ = "ai_players"
+
+    id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("players.id"), 
+        primary_key=True,
+        comment="Player ID")
+    ai_provider: orm.Mapped[str] = orm.mapped_column(sa.String,
+        nullable=False,
+        comment="AI provider")
+    ai_model: orm.Mapped[str] = orm.mapped_column(sa.String,
+        nullable=False,
+        comment="AI model")
+    system_prompt: orm.Mapped[str | None] = orm.mapped_column(sa.String,
+        nullable=True,
+        comment="System prompt")
+    temperature: orm.Mapped[float] = orm.mapped_column(sa.Float,
+        nullable=True,
+        comment="AI Temperature (controls randomness of AI responses)")
+
+    __mapper_args__ = {
+        "polymorphic_identity": PlayerType.AI,
+    }
 
 
 class GameCharacter(ORMBase):
@@ -46,43 +99,43 @@ class GameCharacter(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Character ID")
+        primary_key=True, 
+        comment="Character ID")
     name: orm.Mapped[str] = orm.mapped_column(sa.String, 
-                                              comment="Character name")
+        comment="Character name")
     category: orm.Mapped[CharacterType] = orm.mapped_column(
         sa.Enum(CharacterType), 
         comment="Character category")
     race: orm.Mapped[str | None] = orm.mapped_column(sa.String, 
-                                                      nullable=True, 
-                                                      comment="Character race")
+        nullable=True, 
+        comment="Character race")
     gender: orm.Mapped[str | None] = orm.mapped_column(sa.String, 
-                                         nullable=True, 
-                                         comment="Character gender")
+        nullable=True, 
+        comment="Character gender")
     age: orm.Mapped[int | None] = orm.mapped_column(sa.Integer, 
-                                                    nullable=True, 
-                                                    comment="Character age")
+        nullable=True, 
+        comment="Character age")
     sexual_orientation: orm.Mapped[str | None] = orm.mapped_column(sa.String,
         nullable=True,
         comment="Character sexual orientation")
     alignment: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                            nullable=True,
-                                            comment="Character alignment")
+        nullable=True,
+        comment="Character alignment")
     occupation: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                            nullable=True,
-                                            comment="Character occupation")
+        nullable=True,
+        comment="Character occupation")
     is_active: orm.Mapped[bool] = orm.mapped_column(sa.Boolean, 
-                                      default=True, 
-                                      comment="Character is active")
+        default=True, 
+        comment="Character is active")
     is_alive: orm.Mapped[bool] = orm.mapped_column(sa.Boolean, 
-                                      default=True, 
-                                      comment="Character is alive")
+        default=True, 
+        comment="Character is alive")
     location: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                            nullable=True,
-                                            comment="Character location")
+        nullable=True,
+        comment="Character location")
     faction: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                            nullable=True,
-                                            comment="Character faction")
+        nullable=True,
+        comment="Character faction")
     disposition: orm.Mapped[Disposition | None] = orm.mapped_column(
         sa.Enum(Disposition), nullable=True,
         comment="Character disposition")
@@ -117,8 +170,8 @@ class CharacterRelationship(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Relationship ID")
+        primary_key=True, 
+        comment="Relationship ID")
     
     # The character who has the relationship
     from_character_id: orm.Mapped[int] = orm.mapped_column(
@@ -161,8 +214,8 @@ class PlayerCharacter(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Player character ID")
+        primary_key=True, 
+        comment="Player character ID")
     player_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("players.id"),
         comment="Player ID")
@@ -199,8 +252,8 @@ class ChunkCharacter(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Chunk character ID")
+        primary_key=True, 
+        comment="Chunk character ID")
     chunk_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("chunks.id"),
         comment="Chunk ID")
@@ -208,6 +261,7 @@ class ChunkCharacter(ORMBase):
         sa.ForeignKey("game_characters.id"),
         comment="Character ID")
     
+    # pyrefly: ignore[unknown-name]
     chunk: orm.Mapped["Chunk"] = orm.relationship(
         "Chunk",
         backref="chunk_characters"
@@ -228,8 +282,8 @@ class GameSession(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Session ID")
+        primary_key=True, 
+        comment="Session ID")
     campaign_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("campaign_metadata.id"),
         comment="Campaign ID")
@@ -269,8 +323,8 @@ class Turn(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Turn ID")
+        primary_key=True, 
+        comment="Turn ID")
     session_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("game_sessions.id"),
         comment="Session ID")
@@ -309,8 +363,8 @@ class TurnCharacter(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Turn character ID")
+        primary_key=True, 
+        comment="Turn character ID")
     turn_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("turns.id"),
         comment="Turn ID")
@@ -338,8 +392,8 @@ class Asset(ORMBase):
     __tablename__ = "assets"
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Asset ID")
+        primary_key=True, 
+        comment="Asset ID")
     title: orm.Mapped[str] = orm.mapped_column(
         sa.String,
         comment="Asset title")
@@ -382,8 +436,8 @@ class CampaignAsset(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Campaign asset ID")
+        primary_key=True, 
+        comment="Campaign asset ID")
     campaign_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("campaign_metadata.id"),
         comment="Campaign ID")
@@ -415,8 +469,8 @@ class SessionAsset(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Session asset ID")
+        primary_key=True, 
+        comment="Session asset ID")
     session_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("game_sessions.id"),
         comment="Session ID")
@@ -448,8 +502,8 @@ class CharacterAsset(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Character asset ID")
+        primary_key=True, 
+        comment="Character asset ID")
     character_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("game_characters.id"),
         comment="Character ID")

@@ -1,4 +1,2 @@
-from .database import get_session
+from .database import get_session, init_db
 from .models import ORMBase, CampaignMetadata
-
-from .database import init_db

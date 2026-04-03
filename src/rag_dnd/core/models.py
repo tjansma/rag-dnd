@@ -21,17 +21,17 @@ class CampaignMetadata(ORMBase):
     __tablename__ = "campaign_metadata"
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
-                                            primary_key=True,
-                                            comment="Campaign ID")
+        primary_key=True,
+        comment="Campaign ID")
     full_name: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                                   comment="Campaign full name")
+        comment="Campaign full name")
     short_name: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                                    unique=True,
-                                                    comment="Campaign short name")
+        unique=True,
+        comment="Campaign short name")
     system: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                                comment="Campaign system")
+        comment="Campaign system")
     language: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                                  comment="Campaign language")
+        comment="Campaign language")
     active_summary_file: orm.Mapped[str | None] = orm.mapped_column(
         sa.String,
         comment="Active summary file")
@@ -49,11 +49,14 @@ class CampaignMetadata(ORMBase):
     extensions: orm.Mapped[dict[str, Any] | None] = orm.mapped_column(
         sa.JSON,
         comment="Campaign extensions")
-
+    # pyrefly: ignore[unknown-name]
     latest_session: orm.Mapped["GameSession"] = orm.relationship(
         "GameSession",
         foreign_keys=[latest_session_id],
         uselist=False)
+    system_prompt_extension: orm.Mapped[str | None] = orm.mapped_column(
+        sa.String,
+        comment="System prompt extension, added to model's system prompt")
     
     @classmethod
     def load_by_id(cls, id: int) -> Self:

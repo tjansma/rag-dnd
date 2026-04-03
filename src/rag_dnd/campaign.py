@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Self, Any
 
 from .core import get_session, CampaignMetadata
-from .game import GameCharacter, GameSession, Asset
+from .game import Player
 from .rag import manager
 from .rag.exceptions import DocumentExistsError
 from .rag.models import QueryResult

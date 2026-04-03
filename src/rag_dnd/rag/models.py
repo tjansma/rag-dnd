@@ -19,10 +19,10 @@ class Collection(ORMBase):
     __tablename__ = "collections"
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="Collection ID")
+        primary_key=True, 
+        comment="Collection ID")
     name: orm.Mapped[str] = orm.mapped_column(sa.String, 
-                                              comment="Collection name")
+        comment="Collection name")
     campaign_id: orm.Mapped[int] = \
         orm.mapped_column(sa.Integer, 
                           sa.ForeignKey("campaign_metadata.id"), 
@@ -44,19 +44,18 @@ class RAGDocument(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
-                                            primary_key=True, 
-                                            comment="RAG Document ID")
+        primary_key=True, 
+        comment="RAG Document ID")
     file_hash: orm.Mapped[str] = orm.mapped_column(sa.String, 
-                                                    index=True,
-                                                    comment="File hash")
+        index=True,
+        comment="File hash")
     custom_filename: orm.Mapped[str] = orm.mapped_column(
         sa.String, 
         index=True,
         comment="Custom filename")
-    collection_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, 
-                          sa.ForeignKey("collections.id"),
-                          comment="Collection ID")
+    collection_id: orm.Mapped[int] = orm.mapped_column(sa.Integer, 
+        sa.ForeignKey("collections.id"),
+        comment="Collection ID")
     
     collection: orm.Mapped["Collection"] = orm.relationship(
         back_populates="rag_documents")
@@ -82,7 +81,7 @@ class RAGDocument(ORMBase):
             Self: The document.
         """
         document = session.query(cls).filter_by(custom_filename=custom_filename,
-                                                collection_id=collection_id).first()
+            collection_id=collection_id).first()
         if document is None:
             logger.error(f"Document {custom_filename} not found in database.")
             raise DocumentNotFoundError(f"Document {custom_filename} not found in database.")
@@ -105,15 +104,15 @@ class GameCharacterRAGDocument(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
-    character_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("game_characters.id"),
-                          comment="Character ID")
-    rag_document_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("rag_documents.id"),
-                          comment="RAG Document ID")
+    character_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("game_characters.id"),
+        comment="Character ID")
+    rag_document_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("rag_documents.id"),
+        comment="RAG Document ID")
     description: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                                            nullable=True,
-                                                            comment="Description")
+        nullable=True,
+        comment="Description")
     
     # pyrefly: ignore[unknown-name]
     character: orm.Mapped["GameCharacter"] = \
@@ -131,15 +130,15 @@ class GameSessionRAGDocument(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
-    session_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("game_sessions.id"),
-                          comment="Session ID")
-    rag_document_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("rag_documents.id"),
-                          comment="RAG Document ID")
+    session_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("game_sessions.id"),
+        comment="Session ID")
+    rag_document_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("rag_documents.id"),
+        comment="RAG Document ID")
     description: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                                            nullable=True,
-                                                            comment="Description")
+        nullable=True,
+        comment="Description")
     
     # pyrefly: ignore[unknown-name]
     session: orm.Mapped["GameSession"] = \
@@ -157,15 +156,15 @@ class AssetRAGDocument(ORMBase):
     )
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True)
-    asset_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("assets.id"),
-                          comment="Asset ID")
-    rag_document_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("rag_documents.id"),
-                          comment="RAG Document ID")
+    asset_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("assets.id"),
+        comment="Asset ID")
+    rag_document_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("rag_documents.id"),
+        comment="RAG Document ID")
     description: orm.Mapped[str | None] = orm.mapped_column(sa.String,
-                                                            nullable=True,
-                                                            comment="Description")
+        nullable=True,
+        comment="Description")
     
     # pyrefly: ignore[unknown-name]
     asset: orm.Mapped["Asset"] = \
@@ -182,15 +181,16 @@ class Chunk(ORMBase):
     # yet.
     __allow_unmapped__ = True
 
-    id: orm.Mapped[int] = orm.mapped_column(sa.Integer, primary_key=True,
-                                            comment="Chunk ID")
-    document_id: orm.Mapped[int] = \
-        orm.mapped_column(sa.Integer, sa.ForeignKey("rag_documents.id"),
-                          comment="Document ID")
+    id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        primary_key=True,
+        comment="Chunk ID")
+    document_id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+        sa.ForeignKey("rag_documents.id"),
+        comment="Document ID")
     text: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                              comment="Text")
+        comment="Text")
     chunk_hash: orm.Mapped[str] = orm.mapped_column(sa.String,
-                                                     comment="Chunk hash")
+        comment="Chunk hash")
     
     parent_rag_document: orm.Mapped["RAGDocument"] = \
         orm.relationship(back_populates="chunks")
