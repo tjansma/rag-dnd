@@ -10,7 +10,6 @@ from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session, joinedload
 
 from ..config import Config
-from ..core import get_session
 
 from .embeddings import get_embedding_instance
 from .exceptions import DocumentExistsError, DocumentNotFoundError
@@ -22,11 +21,14 @@ from .chunker import Chunker
 logger = logging.getLogger(__name__)
 
 
-def ensure_collection(collection_name, campaign_id) -> Collection:
+def ensure_collection(database_session: Session,
+                      collection_name: str,
+                      campaign_id: int) -> Collection:
     """
     Ensure a collection exists.
     
     Args:
+        database_session (Session): The database session.
         collection_name (str): The name of the collection.
         campaign_id (int): The id of the campaign to which the collection belongs.
                 
@@ -34,26 +36,25 @@ def ensure_collection(collection_name, campaign_id) -> Collection:
         Collection: The collection.
     """
     logger.debug(f"Ensuring collection: {collection_name}")
-    with get_session() as session:
-        collection = session.query(Collection).filter_by(name=collection_name).first()
-        logger.debug(f"Collection {collection_name} found: {collection is not None}")
-        if collection is None:
-            logger.debug(f"Collection {collection_name} does not exist. Creating...")
-            collection = Collection(name=collection_name, campaign_id=campaign_id)
-            session.add(collection)
-            session.commit()
-            logger.debug(f"Collection {collection_name} created.")
-        session.expunge_all()
-        logger.debug(f"Collection {collection_name} returned.")
+    collection = database_session.query(Collection).filter_by(name=collection_name).first()
+    logger.debug(f"Collection {collection_name} found: {collection is not None}")
+    if collection is None:
+        logger.debug(f"Collection {collection_name} does not exist. Creating...")
+        collection = Collection(name=collection_name, campaign_id=campaign_id)
+        database_session.add(collection)
+        database_session.flush()
+        logger.debug(f"Collection {collection_name} created.")
+    logger.debug(f"Collection {collection_name} returned.")
     return collection
 
 
-def get_collection(session: Session, collection_name: str) -> Collection:
+def get_collection(database_session: Session,
+                   collection_name: str) -> Collection:
     """
     Get a collection.
     
     Args:
-        session (Session): The database session.
+        database_session (Session): The database session.
         collection_name (str): The name of the collection.
         
     Returns:
@@ -63,7 +64,7 @@ def get_collection(session: Session, collection_name: str) -> Collection:
         ValueError: If the collection does not exist.
     """
     logger.debug(f"Getting collection: {collection_name}")
-    collection = session.query(Collection).filter_by(name=collection_name).first()
+    collection = database_session.query(Collection).filter_by(name=collection_name).first()
     if collection is None:
         raise ValueError(f"Collection '{collection_name}' not found.")
     return collection
@@ -71,7 +72,7 @@ def get_collection(session: Session, collection_name: str) -> Collection:
 
 def store_document(collection: Collection,
                    file: Path,
-                   session: Session,
+                   database_session: Session,
                    custom_filename: str | None = None,
                    config: Config | None = None) -> None:
     """Store a document in the database.
@@ -79,7 +80,7 @@ def store_document(collection: Collection,
     Args:
         collection (Collection): The collection to store the document in.
         file (Path): The path to the document.
-        session (Session): The database session.
+        database_session (Session): The database session.
         custom_filename (str | None): The custom filename to use.
         config (Config): The configuration.
 
@@ -118,13 +119,11 @@ def store_document(collection: Collection,
     # Add the document and chunks to the database
     logger.debug(f"Adding document to database.")
     try:
-        session.add(document)
-        session.add_all(chunks)
-        session.commit()
-        session.expunge_all()
+        database_session.add(document)
+        database_session.add_all(chunks)
+        database_session.flush()
     except DatabaseError as e:
         logger.error(f"Error adding '{file.name}' to database: {e}")
-        session.rollback()
         raise DocumentExistsError(f"Document '{file.name}' already exists.")
 
     # ChromaDB operations (outside session — SQLite is source of truth)
@@ -148,7 +147,7 @@ def store_document(collection: Collection,
 
 def query(query: str, 
           collection: Collection,
-          session: Session,
+          database_session: Session,
           limit: int = 5,
           config: Config | None = None) -> list[QueryResult]:
     """
@@ -157,7 +156,7 @@ def query(query: str,
     Args:
         query (str): The query to perform.
         collection (Collection): The collection to query.
-        session (Session): The database session.
+        database_session (Session): The database session.
         limit (int): The number of chunks to return. Defaults to 5.
         config (Config): The configuration to use. Defaults to Config.load().
         
@@ -185,7 +184,7 @@ def query(query: str,
     # INFO potential risk of logging sensitive information (password in URL)
     logger.debug(f"Retrieving relevant chunks from database: {config.content_database_url}")
     results = []
-    chunks = session.query(Chunk)\
+    chunks = database_session.query(Chunk)\
         .options(joinedload(Chunk.parent_rag_document))\
         .filter(Chunk.id.in_(relevant_chunk_ids))\
         .all()
@@ -207,7 +206,7 @@ def query(query: str,
 
 def delete_document(collection: Collection,
                     filename: str,
-                    session: Session,
+                    database_session: Session,
                     custom_filename: str | None = None,
                     config: Config | None = None) -> None:
     """Delete a document from the database.
@@ -218,7 +217,7 @@ def delete_document(collection: Collection,
     Args:
         collection (Collection): The collection to delete the document from.
         filename (str): The path to the document.
-        session (Session): The database session.
+        database_session (Session): The database session.
         custom_filename (str | None): The custom filename to use.
         config (Config): The configuration to use.
 
@@ -235,7 +234,7 @@ def delete_document(collection: Collection,
     # Query the document by custom_filename
     document = RAGDocument.load_by_custom_filename(custom_filename,
                                                 collection.id,
-                                                session)
+                                                database_session)
 
     # 1. Clean up Vector Store (Child) first
     vector_store = get_vector_store(collection.name, config)
@@ -246,11 +245,10 @@ def delete_document(collection: Collection,
     # Chunks in SQLite are automatically deleted via cascade="all, delete-orphan"
     try:
         logger.debug(f"Deleting document: {document}")
-        session.delete(document)
-        session.commit()
+        database_session.delete(document)
+        database_session.flush()
     except DatabaseError as e:
         logger.error(f"Error deleting document: {e}")
-        session.rollback()
         raise
 
     # 3. Rebuild Vector Store BM25 index
@@ -261,7 +259,7 @@ def delete_document(collection: Collection,
 
 def update_document(collection: Collection,
                     file: Path,
-                    session: Session,
+                    database_session: Session,
                     custom_filename: str | None = None,
                     config: Config | None = None) -> None:
     """Update a document in the database.
@@ -272,7 +270,7 @@ def update_document(collection: Collection,
     Args:
         collection (Collection): The collection to update the document in.
         file (Path): The path to the document.
-        session (Session): The database session.
+        database_session (Session): The database session.
         custom_filename (str | None): The custom filename to use.
         config (Config): The configuration to use.
 
@@ -294,7 +292,7 @@ def update_document(collection: Collection,
     # Check if the document exists
     document = RAGDocument.load_by_custom_filename(custom_filename,
                                                 collection.id,
-                                                session)
+                                                database_session)
     
     # Calculate file hash to check if the file has changed
     with open(file, "rb") as f:
@@ -307,9 +305,9 @@ def update_document(collection: Collection,
 
     # Perform a full "Delete & Replace" cycle using the shared session
     logger.debug(f"Deleting document: {custom_filename}")
-    delete_document(collection, custom_filename, session, config=config)
+    delete_document(collection, custom_filename, database_session, config=config)
 
     logger.debug(f"Storing document: {custom_filename}")
-    store_document(collection, file, session, custom_filename, config=config)
+    store_document(collection, file, database_session, custom_filename, config=config)
 
     logger.info(f"Updated document: {custom_filename}")

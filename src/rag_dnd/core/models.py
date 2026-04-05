@@ -6,7 +6,6 @@ import sqlalchemy.orm as orm
 
 from ..config import Config
 
-from .database import get_session
 from .exceptions import CampaignNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -59,45 +58,49 @@ class CampaignMetadata(ORMBase):
         comment="System prompt extension, added to model's system prompt")
     
     @classmethod
-    def load_by_id(cls, id: int) -> Self:
+    def load_by_id(cls,
+                   database_session: orm.Session,
+                   id: int
+                  ) -> Self:
         """
         Load campaign metadata by id.
 
         Args:
+            database_session (Session): The database session.
             id (int): The id of the campaign metadata to load.
 
         Returns:
             Self: The campaign metadata.
         """
-        with get_session() as session:
-            metadata = session.query(cls).filter(cls.id == id).first()
-            if metadata is None:
-                raise CampaignNotFoundError(f"Campaign with id {id} not found.")
+        metadata = database_session.query(cls).filter(cls.id == id).first()
+        if metadata is None:
+            raise CampaignNotFoundError(f"Campaign with id {id} not found.")
 
-            session.expunge_all()
-            return metadata
+        return metadata
 
     @classmethod
-    def load_by_short_name(cls, name: str) -> Self:
+    def load_by_short_name(cls,
+                           database_session: orm.Session,
+                           name: str
+                          ) -> Self:
         """
         Load campaign metadata by name.
 
         Args:
+            database_session (Session): The database session.
             name (str): The name of the campaign metadata to load.
 
         Returns:
             Self: The campaign metadata.
         """
-        with get_session() as session:
-            metadata = session.query(cls).filter(cls.short_name == name).first()
-            if metadata is None:
-                raise CampaignNotFoundError(f"Campaign '{name}' not found.")
+        metadata = database_session.query(cls).filter(cls.short_name == name).first()
+        if metadata is None:
+            raise CampaignNotFoundError(f"Campaign '{name}' not found.")
 
-            session.expunge_all()
-            return metadata
+        return metadata
 
     @orm.validates("short_name")
-    def validate_short_name(self, key, value) -> str:
+    def validate_short_name(self, key: str, value: str) -> str:
         """
         Validate the short name.
 

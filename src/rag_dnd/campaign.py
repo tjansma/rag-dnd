@@ -3,18 +3,21 @@ import logging
 from pathlib import Path
 from typing import Self, Any
 
-from .core import get_session, CampaignMetadata
-from .game import Player
+from sqlalchemy.orm import Session
+
+from .core import CampaignMetadata
 from .rag import manager
 from .rag.exceptions import DocumentExistsError
-from .rag.models import QueryResult
+from .rag.models import QueryResult, Collection
 
 logger = logging.getLogger(__name__)
 
 class Campaign:
     """Class to represent a campaign."""
     # --- Constructor ---
-    def __init__(self, metadata: CampaignMetadata):
+    def __init__(self, 
+                 metadata: CampaignMetadata,
+                 database_session: Session) -> None:
         """Initialize the campaign.
         
         Args:
@@ -23,14 +26,17 @@ class Campaign:
         Returns:
             None
         """
-        self.metadata = metadata
-        self.default_collection = \
-            manager.ensure_collection(metadata.get_default_collection_name(),
+        self.metadata: CampaignMetadata = metadata
+        self._db_session: Session = database_session
+        self.default_collection: Collection = \
+            manager.ensure_collection(database_session,
+                                      metadata.get_default_collection_name(),
                                       metadata.id)
 
     # --- Class methods ---
     @classmethod
     def create(cls,
+               database_session: Session,
                full_name:str,
                short_name: str,
                roleplay_system: str,
@@ -41,6 +47,7 @@ class Campaign:
         """Create a new campaign.
         
         Args:
+            database_session (Session): The database session.
             full_name (str): The full name of the campaign.
             short_name (str): The short name of the campaign.
             roleplay_system (str): The roleplay system of the campaign.
@@ -52,62 +59,72 @@ class Campaign:
         Returns:
             Self: The campaign.
         """
-        with get_session() as session:
-            campaign_metadata = CampaignMetadata(
-                full_name=full_name,
-                short_name=short_name,
-                system=roleplay_system,
-                language=language,
-                active_summary_file=active_summary_file,
-                session_log_file=session_log_file,
-                extensions=extensions
-            )
-            session.add(campaign_metadata)
-            session.commit()
-            session.expunge_all()
-        
-        return cls(campaign_metadata)
+        campaign_metadata = CampaignMetadata(
+            full_name=full_name,
+            short_name=short_name,
+            system=roleplay_system,
+            language=language,
+            active_summary_file=active_summary_file,
+            session_log_file=session_log_file,
+            extensions=extensions
+        )
+        database_session.add(campaign_metadata)
+        database_session.flush()
+
+        return cls(campaign_metadata, database_session)
 
     @classmethod
-    def list_all(cls) -> list[Self]:
+    def list_all(cls, database_session: Session) -> list[Self]:
         """List all campaigns.
         
+        Args:
+            database_session (Session): The database session.
+            
         Returns:
             list[Self]: The list of campaigns.
         """
-        with get_session() as session:
-            campaign_metadata = session.query(CampaignMetadata).all()
-            session.expunge_all()
+        campaign_metadata = database_session.query(CampaignMetadata).all()
             
-        return [cls(metadata) for metadata in campaign_metadata]
+        return [cls(metadata, database_session) for metadata in campaign_metadata]
 
 
     @classmethod
-    def from_db_by_short_name(cls, short_name: str) -> Self:
+    def from_db_by_short_name(cls,
+                              database_session: Session,
+                              short_name: str) -> Self:
         """Load campaign metadata by short name.
         
         Args:
+            database_session (Session): The database session.
             short_name (str): The short name of the campaign.
             
         Returns:
             Self: The campaign.
         """
-        return cls(CampaignMetadata.load_by_short_name(short_name))
+        campaign_metadata = CampaignMetadata.load_by_short_name(
+            database_session, 
+            short_name
+        )
+        return cls(campaign_metadata, database_session)
 
     @classmethod
-    def from_db_by_id(cls, id: int) -> Self:
+    def from_db_by_id(cls, database_session: Session, id: int) -> Self:
         """Load campaign metadata by id.
         
         Args:
+            database_session (Session): The database session.
             id (int): The id of the campaign.
             
         Returns:
             Self: The campaign.
         """
-        return cls(CampaignMetadata.load_by_id(id))
+        campaign_metadata = CampaignMetadata.load_by_id(database_session, id)
+        return cls(campaign_metadata, database_session)
     
     # --- Methods ---
-    def query_rag(self, prompt: str, collection_name: str | None = None, max_results: int = 5) -> list[QueryResult]:
+    def query_rag(self, prompt: str,
+                  collection_name: str | None = None,
+                  max_results: int = 5) -> list[QueryResult]:
         """Query the RAG system.
         
         Args:
@@ -127,13 +144,12 @@ class Campaign:
         if collection_name is None:
             collection_name = self.metadata.get_default_collection_name()
         
-        with get_session() as session:
-            collection = manager.get_collection(session, collection_name)
-            if collection.campaign_id != self.metadata.id:
-                logger.error(f"Campaign.query_rag: Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
-                raise ValueError(f"Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
+        collection = manager.get_collection(self._db_session, collection_name)
+        if collection.campaign_id != self.metadata.id:
+            logger.error(f"Campaign.query_rag: Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
+            raise ValueError(f"Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
         
-            return manager.query(prompt, collection, session, limit=max_results)
+        return manager.query(prompt, collection, self._db_session, limit=max_results)
 
     def store_document(self,
                        filename: Path,
@@ -163,19 +179,30 @@ class Campaign:
         if collection_name is None:
             collection = self.default_collection
         else:
-            with get_session() as session:
-                collection = manager.get_collection(session, collection_name)
-                if collection.campaign_id != self.metadata.id:
-                    logger.error(f"Campaign.store_document: Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
-                    raise ValueError(f"Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
+            collection = manager.get_collection(self._db_session,
+                                                collection_name)
+            if collection.campaign_id != self.metadata.id:
+                logger.error(f"Campaign.store_document: Collection "
+                             f"'{collection_name}' does not belong to campaign "
+                             f"'{self.metadata.short_name}'.")
+                raise ValueError(f"Collection '{collection_name}' does not "
+                                 f"belong to campaign "
+                                 f"'{self.metadata.short_name}'.")
 
-        with get_session() as session:
-            try:
-                manager.store_document(collection, filename, session, custom_filename=custom_filename)
-            except DocumentExistsError:
-                manager.update_document(collection, filename, session, custom_filename=custom_filename)
+        try:
+            manager.store_document(collection,
+                                   filename,
+                                   self._db_session,
+                                   custom_filename=custom_filename)
+        except DocumentExistsError:
+            manager.update_document(collection,
+                                    filename,
+                                    self._db_session,
+                                    custom_filename=custom_filename)
 
-    def delete_document(self, filename: str, collection_name: str | None = None) -> None:
+    def delete_document(self,
+                        filename: str,
+                        collection_name: str | None = None) -> None:
         """
         Delete a document from the database.
         
@@ -195,11 +222,16 @@ class Campaign:
         if collection_name is None:
             collection = self.default_collection
         else:
-            with get_session() as session:
-                collection = manager.get_collection(session, collection_name)
-                if collection.campaign_id != self.metadata.id:
-                    logger.error(f"Campaign.delete_document: Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
-                    raise ValueError(f"Collection '{collection_name}' does not belong to campaign '{self.metadata.short_name}'.")
+            collection = manager.get_collection(self._db_session,
+                                                collection_name)
+            if collection.campaign_id != self.metadata.id:
+                logger.error(f"Campaign.delete_document: Collection "
+                             f"'{collection_name}' does not belong to campaign "
+                             f"'{self.metadata.short_name}'.")
+                raise ValueError(f"Collection '{collection_name}' does not "
+                                 f"belong to campaign "
+                                 f"'{self.metadata.short_name}'.")
 
-        with get_session() as session:
-            manager.delete_document(collection, filename, session)
+        manager.delete_document(collection,
+                                filename,
+                                self._db_session)

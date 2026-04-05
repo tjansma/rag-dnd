@@ -1,7 +1,7 @@
 """FastAPI routes for API requests."""
 import logging
 
-from fastapi import APIRouter, UploadFile, HTTPException, Depends, Path
+from fastapi import APIRouter, UploadFile, HTTPException, Depends
 from pydantic import TypeAdapter
 from sqlalchemy.orm import Session
 
@@ -24,8 +24,10 @@ router_v2 = APIRouter(prefix="/v2")
 # Campaign mutation routes
 # ---------------------------------------------------------------------------
 
-@router_v2.post("/campaigns", status_code=201)
-def create_campaign(request: CreateCampaignRequest) -> CampaignResponse:
+@router_v2.post("/campaigns", status_code=201, tags=["campaigns"])
+def create_campaign(request: CreateCampaignRequest, 
+                    db_session: Session = Depends(database_session)
+                   ) -> CampaignResponse:
     """
     Create a new campaign.
 
@@ -36,6 +38,7 @@ def create_campaign(request: CreateCampaignRequest) -> CampaignResponse:
         CampaignResponse: The created campaign.
     """
     campaign = Campaign.create(
+        database_session=db_session,
         full_name=request.full_name,
         short_name=request.short_name,
         roleplay_system=request.roleplay_system,
@@ -59,15 +62,16 @@ def create_campaign(request: CreateCampaignRequest) -> CampaignResponse:
 # Campaign query routes
 # ---------------------------------------------------------------------------
 
-@router_v2.get("/campaigns")
-def get_campaign_list() -> list[CampaignResponse]:
+@router_v2.get("/campaigns", tags=["campaigns"])
+def get_campaign_list(db_session: Session = Depends(database_session)) -> \
+        list[CampaignResponse]:
     """
     Get a list of all campaigns.
 
     Returns:
         list[CampaignResponse]: The list of campaigns.
     """
-    campaigns = Campaign.list_all()
+    campaigns = Campaign.list_all(db_session)
     return [CampaignResponse(
         id=campaign.metadata.id,
         full_name=campaign.metadata.full_name,
@@ -85,10 +89,12 @@ def get_campaign_list() -> list[CampaignResponse]:
 # ===========================================================================
 # Document mutation routes
 # ---------------------------------------------------------------------------
-@router_v2.put("/campaigns/{campaign_short_name}/documents", status_code=200)
+@router_v2.put("/campaigns/{campaign_short_name}/documents",
+               status_code=200,
+               tags=["documents", "rag"])
 def update_document(file: UploadFile,
                     campaign_and_collection: tuple[Campaign, str] = 
-                        Depends(get_campaign_and_collection)
+                        Depends(get_campaign_and_collection),
                    ):
     """
     Store or update a document in the database.
@@ -124,10 +130,12 @@ def update_document(file: UploadFile,
                             detail="Internal server error")
     logger.info(f"Document updated in database: {file.filename}")
 
-@router_v2.delete("/campaigns/{campaign_short_name}/documents/{filename}")
+@router_v2.delete("/campaigns/{campaign_short_name}/documents/{filename}",
+                  status_code=200,
+                  tags=["documents", "rag"])
 def delete_document(filename: str,
                     campaign_and_collection: tuple[Campaign, str] = 
-                        Depends(get_campaign_and_collection)
+                        Depends(get_campaign_and_collection),
                    ) -> None:
     """
     Delete a document from the database.
@@ -159,11 +167,12 @@ def delete_document(filename: str,
 # ===========================================================================
 # Post query routes
 # ---------------------------------------------------------------------------
-@router_v2.post("/campaigns/{campaign_short_name}/query")
+@router_v2.post("/campaigns/{campaign_short_name}/query",
+                tags=["rag"])
 def query_campaign(request: QueryRequest,
                    campaign_and_collection: tuple[Campaign, str] = 
-                        Depends(get_campaign_and_collection)
-                   ) -> list[rag.QueryResult]:
+                        Depends(get_campaign_and_collection),
+                  ) -> list[rag.QueryResult]:
     """
     Query the campaign RAG system.
     
@@ -206,7 +215,7 @@ def query_campaign(request: QueryRequest,
 # ===========================================================================
 # LLM generation routes
 # ---------------------------------------------------------------------------
-@router_v2.post("/llm/generate")
+@router_v2.post("/llm/generate", tags=["llm"])
 def llm_generate(prompt: list[LLMMessage]) -> str:
     """
     Generate text using the LLM.
@@ -226,7 +235,7 @@ def llm_generate(prompt: list[LLMMessage]) -> str:
     return result
 
 
-@router_v2.post("/llm/expand_query")
+@router_v2.post("/llm/expand_query", tags=["llm", "rag"])
 def llm_expand_query(request: ExpandQueryRequest) -> str:
     """
     Expand a query using the LLM.
@@ -251,7 +260,8 @@ def llm_expand_query(request: ExpandQueryRequest) -> str:
 
 @router_v2.post("/players", 
                 response_model=game.PlayerResponseSchema, 
-                status_code=201)
+                status_code=201,
+                tags=["players"])
 def register_player(request: game.PlayerCreateSchema, 
                     db_session: Session = Depends(database_session)) -> \
         game.PlayerResponseSchema:
@@ -271,13 +281,11 @@ def register_player(request: game.PlayerCreateSchema,
     logger.debug(f"routes_v2.register_player: Entering {request=}")
     try:
         player = game.register_player(request, db_session)
-        db_session.commit()
     except game.PlayerExistsError as e:
         logger.error(f"routes_v2.register_player: "
                      f"Error registering player: {e}")
         raise HTTPException(status_code=400, detail="Player already exists")
     except Exception as e:
-        db_session.rollback()
         logger.error(f"routes_v2.register_player: "
                      f"Error registering player: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -289,7 +297,9 @@ def register_player(request: game.PlayerCreateSchema,
 # ---------------------------------------------------------------------------
 # Player query routes
 # ---------------------------------------------------------------------------
-@router_v2.get("/players", response_model=list[game.PlayerResponseSchema])
+@router_v2.get("/players",
+               response_model=list[game.PlayerResponseSchema],
+               tags=["players"])
 def get_players(db_session: Session = Depends(database_session)) -> \
         list[game.PlayerResponseSchema]:
     """
@@ -315,7 +325,8 @@ def get_players(db_session: Session = Depends(database_session)) -> \
     return TypeAdapter(list[game.PlayerResponseSchema]).validate_python(players)
 
 @router_v2.get("/players/{player_id}",
-               response_model=game.PlayerResponseSchema)
+               response_model=game.PlayerResponseSchema,
+               tags=["players"])
 def get_player_by_id(player_id: int, 
                        db_session: Session = Depends(database_session)) -> \
         game.PlayerResponseSchema:
@@ -346,7 +357,8 @@ def get_player_by_id(player_id: int,
     return TypeAdapter(game.PlayerResponseSchema).validate_python(player)
 
 @router_v2.get("/players/name/{player_name}",
-               response_model=game.PlayerResponseSchema)
+               response_model=game.PlayerResponseSchema,
+               tags=["players"])
 def get_player_by_name(player_name: str, 
                        db_session: Session = Depends(database_session)) -> \
         game.PlayerResponseSchema:

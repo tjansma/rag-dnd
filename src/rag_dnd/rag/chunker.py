@@ -5,7 +5,6 @@ from hashlib import sha256
 from pathlib import Path
 import logging
 from typing import get_args,List, Literal
-import re
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 import nltk

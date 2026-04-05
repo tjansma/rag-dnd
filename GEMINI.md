@@ -78,9 +78,10 @@ src/rag_dnd/
   - **Modular Architecture (Phase 1):** Extracted `ORMBase`, `CampaignMetadata`, and database engine out of `rag/` into `core/`. Established `Campaign` as a top-level Application Facade to cleanly orchestrate RAG and game logic.
   - **Structured D&D Data Models (v0.4):** Implemented 5 enums and 11 new SQLAlchemy models in `game/models.py` (characters, sessions, players, assets, junction tables).
   - **Pragmatic Monolith & 3NF:** Seamlessly linked `rag`, `core`, and `game` domains using strict 3NF Junction Tables (`GameCharacterRAGDocument` etc.) and string-based ORM relationships to guarantee integrity while preventing circular dependencies.
+  - **Player API (Phase 5a):** Implemented an end-to-end Player API (REST routes, Discriminated Union schemas, auto-generated Pydantic client models, and a structured Typer CLI `rag-cli player`).
 
 - **In Progress (API/CLI Rollout):**
-  - **Character API (Phase 5a):** Implementing CRUD endpoints (`routes_v2.py`) and schemas for `GameCharacter` and its relationships.
+  - **Character API (Phase 5b):** **[GOAL FOR NEXT SESSION]** Implement CRUD endpoints (`routes_v2.py`), Pydantic schemas, and CLI commands for `GameCharacter` and its relationships.
 
 - **Planned:**
   - **Session & Turn API:** Endpoints to manage play sessions. 

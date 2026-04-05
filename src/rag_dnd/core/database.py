@@ -72,7 +72,7 @@ def init_db():
 def get_session() -> Generator[Session, None, None]:
     """
     Get a session and close it after use.
-    
+
     Yields:
         Session: A session.
     """
@@ -81,7 +81,7 @@ def get_session() -> Generator[Session, None, None]:
 
     logger.debug(f"Getting session from database: {engine}")
     try:
-        session = sessionmaker(bind=engine, expire_on_commit=False)()
+        session = sessionmaker(bind=engine, expire_on_commit=True)()
         yield session
     finally:
         logger.debug(f"Closing session: {session}")

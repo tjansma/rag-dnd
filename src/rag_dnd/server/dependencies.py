@@ -1,7 +1,7 @@
 import logging
 from typing import Generator
 
-from fastapi import Path, HTTPException
+from fastapi import Path, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from ..campaign import Campaign
@@ -17,14 +17,24 @@ def database_session() -> Generator[Session, None, None]:
         Session: The database session.
     """
     with get_session() as session:
-        yield session
+        try:
+            yield session
+            logger.debug("server.dependencies.database_session: "
+                         "Committing session")
+            session.commit()
+        except Exception as e:
+            logger.error(f"server.dependencies.database_session: "
+                         f"Exception caught! Rolling back session: {e}")
+            session.rollback()
+            raise
 
 def get_campaign_and_collection(
         campaign_short_name: str = Path(
             ..., 
             description="The short name of the campaign"
         ),
-        collection_name: str | None = None
+        collection_name: str | None = None,
+        session: Session = Depends(database_session)
     ) -> tuple[Campaign, str]:
     """
     Dependency to get the campaign object and routed collection string.
@@ -41,7 +51,7 @@ def get_campaign_and_collection(
         HTTPException: If the campaign is not found.
     """
     try:
-        campaign = Campaign.from_db_by_short_name(campaign_short_name)
+        campaign = Campaign.from_db_by_short_name(session, campaign_short_name)
     except ValueError as e:
         logger.error(f"Error getting campaign: {e}")
         raise HTTPException(status_code=404, detail="Campaign not found")

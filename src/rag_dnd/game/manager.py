@@ -12,7 +12,8 @@ from .schemas import PlayerCreateSchema
 # ===========================================================================
 # Player registration functions
 # ---------------------------------------------------------------------------
-def register_player(player_data: PlayerCreateSchema, session: Session) -> Player:
+def register_player(player_data: PlayerCreateSchema, session: Session) -> \
+        Player:
     """
     Register a new player.
 

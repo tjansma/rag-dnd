@@ -2,7 +2,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from .enums import PlayerType
+from .enums import PlayerType, CharacterType, Disposition
 
 
 # ===========================================================================
@@ -129,3 +129,100 @@ PlayerResponseSchema = Annotated[
     HumanPlayerResponse | AIPlayerResponse,
     Field(discriminator="player_type")
 ]
+
+# ---------------------------------------------------------------------------
+# Campaign schemas
+# ---------------------------------------------------------------------------
+
+class GameCharacterOnCampaignCreate(BaseModel):
+    """
+    Schema for creating a game character.
+
+    Attributes:
+        name: Character name
+        category: Character category
+        race (optional): Character race
+        gender (optional): Character gender
+        age (optional): Character age
+        sexual_orientation (optional): Character sexual orientation
+        alignment (optional): Character alignment
+        occupation (optional): Character occupation
+        is_active (optional): Character is active
+        is_alive (optional): Character is alive
+        location (optional): Character location
+        faction (optional): Character faction
+        disposition (optional): Character disposition
+        known_by_party (optional): Character is known by party
+        description (optional): Character description
+        data (optional): Character data
+        campaign_id: Campaign ID
+    """
+    name: str = Field(..., description="Character name")
+    category: CharacterType = Field(..., description="Character category")
+    race: str | None = Field(None, description="Character race")
+    gender: str | None = Field(None, description="Character gender")
+    age: int | None = Field(None, description="Character age")
+    sexual_orientation: str | None = Field(None,
+        description="Character sexual orientation")
+    alignment: str | None = Field(None, description="Character alignment")
+    occupation: str | None = Field(None, description="Character occupation")
+    is_active: bool = Field(True, description="Character is active")
+    is_alive: bool = Field(True, description="Character is alive")
+    location: str | None = Field(None, description="Character location")
+    faction: str | None = Field(None, description="Character faction")
+    disposition: Disposition | None = Field(None,
+        description="Character disposition")
+    known_by_party: bool = Field(False, description="Character is known by party")
+    description: str | None = Field(None, description="Character description")
+    data: Any | None = Field(None, description="Character data")
+    campaign_id: int = Field(..., description="Campaign ID")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class GameCharacterOnCampaignResponse(BaseModel):
+    """
+    Schema for game character response.
+
+    Attributes:
+        id: Character ID
+        name: Character name
+        category: Character category
+        race: Character race
+        gender: Character gender
+        age: Character age
+        sexual_orientation: Character sexual orientation
+        alignment: Character alignment
+        occupation: Character occupation
+        is_active: Character is active
+        is_alive: Character is alive
+        location: Character location
+        faction: Character faction
+        disposition: Character disposition
+        known_by_party: Character is known by party
+        description: Character description
+        data: Character data
+        campaign_id: Campaign ID
+    """
+    id: int = Field(..., description="Character ID")
+    name: str = Field(..., description="Character name")
+    category: CharacterType = Field(..., description="Character category")
+    race: str | None = Field(None, description="Character race")
+    gender: str | None = Field(None, description="Character gender")
+    age: int | None = Field(None, description="Character age")
+    sexual_orientation: str | None = Field(None,
+        description="Character sexual orientation")
+    alignment: str | None = Field(None, description="Character alignment")
+    occupation: str | None = Field(None, description="Character occupation")
+    is_active: bool = Field(True, description="Character is active")
+    is_alive: bool = Field(True, description="Character is alive")
+    location: str | None = Field(None, description="Character location")
+    faction: str | None = Field(None, description="Character faction")
+    disposition: Disposition | None = Field(None,
+        description="Character disposition")
+    known_by_party: bool = Field(False, description="Character is known by party")
+    description: str | None = Field(None, description="Character description")
+    data: Any | None = Field(None, description="Character data")
+    campaign_id: int = Field(..., description="Campaign ID")
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
