@@ -6,6 +6,7 @@ import chromadb
 from rank_bm25 import BM25Okapi
 
 from ..config import Config
+
 from .models import Chunk
 
 STOP_WORDS = {

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -155,7 +156,6 @@ class GameCharacterOnCampaignCreate(BaseModel):
         known_by_party (optional): Character is known by party
         description (optional): Character description
         data (optional): Character data
-        campaign_id: Campaign ID
     """
     name: str = Field(..., description="Character name")
     category: CharacterType = Field(..., description="Character category")
@@ -175,7 +175,48 @@ class GameCharacterOnCampaignCreate(BaseModel):
     known_by_party: bool = Field(False, description="Character is known by party")
     description: str | None = Field(None, description="Character description")
     data: Any | None = Field(None, description="Character data")
-    campaign_id: int = Field(..., description="Campaign ID")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class GameCharacterOnCampaignUpdate(BaseModel):
+    """
+    Schema for updating a game character.
+
+    Attributes:
+        category (optional): Character category
+        race (optional): Character race
+        gender (optional): Character gender
+        age (optional): Character age
+        sexual_orientation (optional): Character sexual orientation
+        alignment (optional): Character alignment
+        occupation (optional): Character occupation
+        is_active (optional): Character is active
+        is_alive (optional): Character is alive
+        location (optional): Character location
+        faction (optional): Character faction
+        disposition (optional): Character disposition
+        known_by_party (optional): Character is known by party
+        description (optional): Character description
+        data (optional): Character data
+    """
+    category: CharacterType | None = Field(None, description="Character category")
+    race: str | None = Field(None, description="Character race")
+    gender: str | None = Field(None, description="Character gender")
+    age: int | None = Field(None, description="Character age")
+    sexual_orientation: str | None = Field(None,
+        description="Character sexual orientation")
+    alignment: str | None = Field(None, description="Character alignment")
+    occupation: str | None = Field(None, description="Character occupation")
+    is_active: bool | None = Field(None, description="Character is active")
+    is_alive: bool | None = Field(None, description="Character is alive")
+    location: str | None = Field(None, description="Character location")
+    faction: str | None = Field(None, description="Character faction")
+    disposition: Disposition | None = Field(None,
+        description="Character disposition")
+    known_by_party: bool | None = Field(None, description="Character is known by party")
+    description: str | None = Field(None, description="Character description")
+    data: Any | None = Field(None, description="Character data")
 
     model_config = ConfigDict(extra="forbid")
 
@@ -226,3 +267,15 @@ class GameCharacterOnCampaignResponse(BaseModel):
     campaign_id: int = Field(..., description="Campaign ID")
 
     model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+# ===========================================================================
+# RAG schemas
+# ===========================================================================
+# RAG query result schemas
+# ---------------------------------------------------------------------------
+@dataclass
+class QueryResult:
+    """Class to represent a query result."""
+    text: str
+    source_document: str

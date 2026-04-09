@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 from .. import game
 from .. import rag
 from ..campaign import Campaign
+from ..shared import DuplicateGameCharacterError, GameCharacterOnCampaignCreate, \
+    GameCharacterOnCampaignResponse, PlayerCreateSchema, PlayerResponseSchema, \
+    QueryResult, GameCharacterOnCampaignUpdate, GameCharacterNotFoundError
 
 from .dependencies import database_session, get_campaign_and_collection
 from .upload import temporary_upload
@@ -172,7 +175,7 @@ def delete_document(filename: str,
 def query_campaign(request: QueryRequest,
                    campaign_and_collection: tuple[Campaign, str] = 
                         Depends(get_campaign_and_collection),
-                  ) -> list[rag.QueryResult]:
+                  ) -> list[QueryResult]:
     """
     Query the campaign RAG system.
     
@@ -259,21 +262,21 @@ def llm_expand_query(request: ExpandQueryRequest) -> str:
 # ---------------------------------------------------------------------------
 
 @router_v2.post("/players", 
-                response_model=game.PlayerResponseSchema, 
+                response_model=PlayerResponseSchema, 
                 status_code=201,
                 tags=["players"])
-def register_player(request: game.PlayerCreateSchema, 
+def register_player(request: PlayerCreateSchema, 
                     db_session: Session = Depends(database_session)) -> \
-        game.PlayerResponseSchema:
+        PlayerResponseSchema:
     """
     Register a new player.
     
     Args:
-        request (game.PlayerCreateSchema): The request to register a new player.
+        request (PlayerCreateSchema): The request to register a new player.
         db_session (Session): The database session.
 
     Returns:
-        game.PlayerResponseSchema: The registered player.
+        PlayerResponseSchema: The registered player.
 
     Raises:
         HTTPException: If the player already exists or an error occurs.
@@ -298,10 +301,10 @@ def register_player(request: game.PlayerCreateSchema,
 # Player query routes
 # ---------------------------------------------------------------------------
 @router_v2.get("/players",
-               response_model=list[game.PlayerResponseSchema],
+               response_model=list[PlayerResponseSchema],
                tags=["players"])
 def get_players(db_session: Session = Depends(database_session)) -> \
-        list[game.PlayerResponseSchema]:
+        list[PlayerResponseSchema]:
     """
     Get all players.
     
@@ -309,7 +312,7 @@ def get_players(db_session: Session = Depends(database_session)) -> \
         db_session (Session): The database session.
 
     Returns:
-        list[game.PlayerResponseSchema]: The list of players.
+        list[PlayerResponseSchema]: The list of players.
 
     Raises:
         HTTPException: If an error occurs.
@@ -322,14 +325,14 @@ def get_players(db_session: Session = Depends(database_session)) -> \
         raise HTTPException(status_code=500, detail="Internal server error")
     logger.info(f"routes_v2.get_players: Players retrieved: {len(players)}")
     
-    return TypeAdapter(list[game.PlayerResponseSchema]).validate_python(players)
+    return TypeAdapter(list[PlayerResponseSchema]).validate_python(players)
 
 @router_v2.get("/players/{player_id}",
-               response_model=game.PlayerResponseSchema,
+               response_model=PlayerResponseSchema,
                tags=["players"])
 def get_player_by_id(player_id: int, 
                        db_session: Session = Depends(database_session)) -> \
-        game.PlayerResponseSchema:
+        PlayerResponseSchema:
     """
     Get a player by ID.
     
@@ -338,7 +341,7 @@ def get_player_by_id(player_id: int,
         db_session (Session): The database session.
 
     Returns:
-        game.PlayerResponseSchema: The player.
+        PlayerResponseSchema: The player.
 
     Raises:
         HTTPException: If the player does not exist or an error occurs.
@@ -354,14 +357,14 @@ def get_player_by_id(player_id: int,
         raise HTTPException(status_code=500, detail="Internal server error")
     logger.info(f"routes_v2.get_player_by_id: Player retrieved: {player.name}")
     
-    return TypeAdapter(game.PlayerResponseSchema).validate_python(player)
+    return TypeAdapter(PlayerResponseSchema).validate_python(player)
 
 @router_v2.get("/players/name/{player_name}",
-               response_model=game.PlayerResponseSchema,
+               response_model=PlayerResponseSchema,
                tags=["players"])
 def get_player_by_name(player_name: str, 
                        db_session: Session = Depends(database_session)) -> \
-        game.PlayerResponseSchema:
+        PlayerResponseSchema:
     """
     Get a player by name.
     
@@ -370,7 +373,7 @@ def get_player_by_name(player_name: str,
         db_session (Session): The database session.
 
     Returns:
-        game.PlayerResponseSchema: The player.
+        PlayerResponseSchema: The player.
 
     Raises:
         HTTPException: If the player does not exist or an error occurs.
@@ -387,4 +390,194 @@ def get_player_by_name(player_name: str,
     logger.info(f"routes_v2.get_player_by_name: "
                 f"Player retrieved: {player.name}")
     
-    return TypeAdapter(game.PlayerResponseSchema).validate_python(player)
+    return TypeAdapter(PlayerResponseSchema).validate_python(player)
+
+# ===========================================================================
+# Game character routes
+# ===========================================================================
+# Game character mutation routes
+# ---------------------------------------------------------------------------
+
+@router_v2.post("/campaigns/{campaign_short_name}/characters",
+                status_code=201,
+                tags=["characters"])
+def create_gamecharacter(request: GameCharacterOnCampaignCreate,
+                         campaign_and_collection: tuple[Campaign, str] = 
+                             Depends(get_campaign_and_collection),
+                        ) -> GameCharacterOnCampaignResponse:
+    """
+    Create a new game character.
+    
+    Args:
+        request (GameCharacterOnCampaignCreate): The request to create a new game character.
+        campaign_and_collection (tuple[Campaign, str]): The campaign and collection.
+
+    Returns:
+        GameCharacterOnCampaignResponse: The created game character.
+
+    Raises:
+        HTTPException: If the campaign does not exist or an error occurs.
+    """
+    campaign, collection_name = campaign_and_collection
+    logger.debug(f"routes_v2.create_gamecharacter: Entering {request=}")
+    try:
+        gamecharacter = campaign.add_gamecharacter(request)
+    except DuplicateGameCharacterError as e:
+        logger.error(f"routes_v2.create_gamecharacter: Error creating game "
+                     f"character: {request.name} in campaign: "
+                     f"{campaign.metadata.short_name}")
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.error(f"routes_v2.create_gamecharacter: Error creating game "
+                     f"character: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    logger.info(f"routes_v2.create_gamecharacter: Game character created: "
+                f"{gamecharacter.name}")
+    
+    return TypeAdapter(GameCharacterOnCampaignResponse).validate_python(gamecharacter)
+
+@router_v2.get("/campaigns/{campaign_short_name}/characters",
+               response_model=list[GameCharacterOnCampaignResponse],
+               tags=["characters"])
+def get_gamecharacters(campaign_and_collection: tuple[Campaign, str] = 
+                             Depends(get_campaign_and_collection),
+                        ) -> list[GameCharacterOnCampaignResponse]:
+    """
+    Get all game characters.
+    
+    Args:
+        campaign_and_collection (tuple[Campaign, str]): The campaign and collection.
+
+    Returns:
+        list[GameCharacterOnCampaignResponse]: The list of game characters.
+
+    Raises:
+        HTTPException: If the campaign does not exist or an error occurs.
+    """
+    campaign, collection_name = campaign_and_collection
+    logger.debug(f"routes_v2.get_gamecharacters: Entering")
+    try:
+        gamecharacters = campaign.get_gamecharacters()
+    except Exception as e:
+        logger.error(f"routes_v2.get_gamecharacters: Error getting game characters: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    logger.info(f"routes_v2.get_gamecharacters: Game characters retrieved: {len(gamecharacters)}")
+    
+    return TypeAdapter(list[GameCharacterOnCampaignResponse]).validate_python(gamecharacters)
+
+@router_v2.get("/campaigns/{campaign_short_name}/characters/{character_id}",
+               response_model=GameCharacterOnCampaignResponse,
+               tags=["characters"])
+def get_gamecharacter_by_id(character_id: int,
+                              campaign_and_collection: tuple[Campaign, str] = 
+                                  Depends(get_campaign_and_collection),
+                             ) -> GameCharacterOnCampaignResponse:
+    """
+    Get a game character by ID.
+    
+    Args:
+        character_id (int): The character ID.
+        campaign_and_collection (tuple[Campaign, str]): The campaign and 
+            collection.
+
+    Returns:
+        GameCharacterOnCampaignResponse: The game character.
+
+    Raises:
+        HTTPException: If the campaign does not exist or an error occurs.
+    """
+    campaign, collection_name = campaign_and_collection
+    logger.debug(f"routes_v2.get_gamecharacter_by_id: Entering {character_id=}")
+    try:
+        gamecharacter = campaign.get_gamecharacter_by_id(character_id)
+    except Exception as e:
+        logger.error(f"routes_v2.get_gamecharacter_by_id: Error getting game "
+                     f"character: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+    if gamecharacter is None:
+        logger.info(f"routes_v2.get_gamecharacter_by_id: Game character with "
+                    f"ID '{character_id}' not found in campaign "
+                    f"'{campaign.metadata.short_name}'.")
+        raise HTTPException(status_code=404, detail="Game character with ID "
+                            f"'{character_id}' not found in campaign "
+                            f"'{campaign.metadata.short_name}'.")
+
+    logger.info(f"routes_v2.get_gamecharacter_by_id: Game character retrieved: "
+                f"{gamecharacter.name}")
+
+    return TypeAdapter(
+        GameCharacterOnCampaignResponse
+    ).validate_python(gamecharacter)
+
+@router_v2.put("/campaigns/{campaign_short_name}/characters/{character_id}",
+               response_model=GameCharacterOnCampaignResponse,
+               tags=["characters"])
+def update_gamecharacter(character_id: int,
+                         request: GameCharacterOnCampaignUpdate,
+                         campaign_and_collection: tuple[Campaign, str] = 
+                             Depends(get_campaign_and_collection),
+                        ) -> GameCharacterOnCampaignResponse:
+    """
+    Update a game character.
+    
+    Args:
+        request (GameCharacterOnCampaignUpdate): The request to update a game character.
+        campaign_and_collection (tuple[Campaign, str]): The campaign and collection.
+
+    Returns:
+        GameCharacterOnCampaignResponse: The updated game character.
+
+    Raises:
+        HTTPException: If the campaign does not exist or an error occurs.
+    """
+    campaign, collection_name = campaign_and_collection
+    logger.debug(f"routes_v2.update_gamecharacter: Entering {request=}")
+    try:
+        gamecharacter = campaign.update_gamecharacter(character_id, request)
+    except GameCharacterNotFoundError as e:
+        logger.error(f"routes_v2.update_gamecharacter: Game character with ID "
+                     f"'{character_id}' not found in campaign "
+                     f"'{campaign.metadata.short_name}'.")
+        raise HTTPException(status_code=404, detail="Game character not found")
+    except Exception as e:
+        logger.error(f"routes_v2.update_gamecharacter: Error updating game "
+                     f"character: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    logger.info(f"routes_v2.update_gamecharacter: Game character updated: "
+                f"{gamecharacter.name}")
+    
+    return TypeAdapter(GameCharacterOnCampaignResponse).validate_python(gamecharacter)
+
+@router_v2.delete("/campaigns/{campaign_short_name}/characters/{character_id}",
+               status_code=200,
+               tags=["characters"])
+def delete_gamecharacter(character_id: int,
+                         campaign_and_collection: tuple[Campaign, str] = 
+                             Depends(get_campaign_and_collection),
+                        ) -> None:
+    """
+    Delete a game character.
+    
+    Args:
+        character_id (int): The ID of the game character to delete.
+        campaign_and_collection (tuple[Campaign, str]): The campaign and collection.
+
+    Raises:
+        HTTPException: If the campaign does not exist or an error occurs.
+    """
+    campaign, collection_name = campaign_and_collection
+    logger.debug(f"routes_v2.delete_gamecharacter: Entering {character_id=}")
+    try:
+        campaign.delete_gamecharacter(character_id)
+    except GameCharacterNotFoundError as e:
+        logger.error(f"routes_v2.delete_gamecharacter: Game character with ID "
+                     f"'{character_id}' not found in campaign "
+                     f"'{campaign.metadata.short_name}'.")
+        raise HTTPException(status_code=404, detail="Game character not found")
+    except Exception as e:
+        logger.error(f"routes_v2.delete_gamecharacter: Error deleting game "
+                     f"character: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    logger.info(f"routes_v2.delete_gamecharacter: Game character deleted: "
+                f"{character_id}")

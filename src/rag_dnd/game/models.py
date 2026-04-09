@@ -8,8 +8,8 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
 from ..core import ORMBase, CampaignMetadata
-
-from .enums import *
+from ..shared import PlayerType, CharacterType, Disposition, RelationshipType, \
+    AssetType
 
 logger = logging.getLogger(__name__)
 

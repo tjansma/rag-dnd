@@ -1,11 +1,10 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .enums import PlayerType
-from .exceptions import PlayerExistsError, PlayerNotFoundError
-from .models import Player, HumanPlayer, AIPlayer
-from .schemas import PlayerCreateSchema
+from ..shared import PlayerExistsError, PlayerNotFoundError, \
+    DuplicateGameCharacterError, PlayerType, PlayerCreateSchema
 
+from .models import Player, HumanPlayer, AIPlayer
 
 # ===========================================================================
 # Player management functions

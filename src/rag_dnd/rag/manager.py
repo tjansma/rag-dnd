@@ -10,11 +10,11 @@ from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session, joinedload
 
 from ..config import Config
+from ..shared import DocumentExistsError, QueryResult
 
 from .embeddings import get_embedding_instance
-from .exceptions import DocumentExistsError, DocumentNotFoundError
 from .llm import get_llm
-from .models import RAGDocument, Collection, Chunk, QueryResult
+from .models import RAGDocument, Collection, Chunk
 from .store import get_vector_store
 from .chunker import Chunker
 

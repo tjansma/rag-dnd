@@ -8,8 +8,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
 from ..core import ORMBase, CampaignMetadata
-
-from .exceptions import DocumentNotFoundError
+from ..shared import DocumentNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -206,10 +205,3 @@ class Chunk(ORMBase):
             str: The text of the chunk.
         """
         return self.text
-
-
-@dataclass
-class QueryResult:
-    """Class to represent a query result."""
-    text: str
-    source_document: str

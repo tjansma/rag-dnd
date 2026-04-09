@@ -3,6 +3,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich import box as rich_box
 import os
 from typing import Optional
 import sys
@@ -10,7 +11,9 @@ import requests
 
 from ..client import RAGClient, list_sessions, get_session_transcript, \
     session_to_markdown, ClientConfig, transcript_summarize, prettify
-from ..client.models import HumanPlayerCreate, AIPlayerCreate
+from ..client.models import HumanPlayerCreate, AIPlayerCreate, \
+    GameCharacterOnCampaignCreate, CharacterType, Disposition, \
+    GameCharacterOnCampaignUpdate
 
 if os.name == 'nt':
     sys.stdin.reconfigure(encoding='utf-8')     # pyrefly: ignore
@@ -24,15 +27,16 @@ rag_app = typer.Typer(help="Manage RAG knowledge base", no_args_is_help=True)
 session_app = typer.Typer(help="Manage session transcripts", no_args_is_help=True)
 campaign_app = typer.Typer(help="Manage campaigns", no_args_is_help=True)
 player_app = typer.Typer(help="Manage players", no_args_is_help=True)
+player_add_app = typer.Typer(help="Add players", no_args_is_help=True)
+character_app = typer.Typer(help="Manage characters", no_args_is_help=True)
 
 app.add_typer(llm_app, name="llm")
 app.add_typer(rag_app, name="rag")
 app.add_typer(session_app, name="session")
 app.add_typer(campaign_app, name="campaign")
 app.add_typer(player_app, name="player")
-
-player_add_app = typer.Typer(help="Add players", no_args_is_help=True)
 player_app.add_typer(player_add_app, name="add")
+app.add_typer(character_app, name="character")
 
 console = Console()
 
@@ -513,5 +517,220 @@ def player_add_ai(
         )
         registered_player = client.register_player(player)
         console.print(f"[bold green]Success![/bold green] AI player added: {registered_player.name}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@character_app.command("add")
+def character_add(
+        name: str = typer.Argument(..., help="The name of the character"),
+        category: CharacterType = typer.Argument(..., help="The category of the character"),
+        race: Optional[str] = typer.Option(None, help="Character race"),
+        gender: Optional[str] = typer.Option(None, help="Character gender"),
+        age: Optional[int] = typer.Option(None, help="Character age"),
+        sexual_orientation: Optional[str] = typer.Option(None, help="Character sexual orientation"),
+        alignment: Optional[str] = typer.Option(None, help="Character alignment"),
+        occupation: Optional[str] = typer.Option(None, help="Character occupation"),
+        is_active: bool = typer.Option(True, help="Character is active"),
+        is_alive: bool = typer.Option(True, help="Character is alive"),
+        location: Optional[str] = typer.Option(None, help="Character location"),
+        faction: Optional[str] = typer.Option(None, help="Character faction"),
+        disposition: Optional[Disposition] = typer.Option(None, help="Character disposition"),
+        known_by_party: bool = typer.Option(False, help="Character is known by party"),
+        description: Optional[str] = typer.Option(None, help="Character description"),
+        data: Optional[str] = typer.Option(None, help="Character data")):
+    """Add a character to the active campaign."""
+    try:
+        client = _get_client()
+        character = GameCharacterOnCampaignCreate(
+            name=name,
+            category=category,
+            race=race,
+            gender=gender,
+            age=age,
+            sexual_orientation=sexual_orientation,
+            alignment=alignment,
+            occupation=occupation,
+            is_active=is_active,
+            is_alive=is_alive,
+            location=location,
+            faction=faction,
+            disposition=disposition,
+            known_by_party=known_by_party,
+            description=description,
+            data=data
+        )
+        registered_character = client.add_character_to_campaign(client.config.campaign, character)
+        console.print(f"[bold green]Success![/bold green] Character added: {registered_character.name}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@character_app.command("list")
+def character_list():
+    """List all characters in the active campaign."""
+    try:
+        client = _get_client()
+        characters = client.get_characters(client.config.campaign)
+        
+        table = Table(title="Characters")
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Name", style="magenta")
+        table.add_column("Category", style="green")
+        table.add_column("Race", style="green")
+        table.add_column("Gender", style="green")
+        table.add_column("Age", style="green")
+        table.add_column("Sexual Orientation", style="green")
+        table.add_column("Alignment", style="green")
+        table.add_column("Occupation", style="green")
+        table.add_column("Is Active", style="green")
+        table.add_column("Is Alive", style="green")
+        table.add_column("Location", style="green")
+        table.add_column("Faction", style="green")
+        table.add_column("Disposition", style="green")
+        table.add_column("Known by Party", style="green")
+        table.add_column("Description", style="green")
+        table.add_column("Data", style="green")
+        
+        for character in characters:
+            table.add_row(
+                str(character.id),
+                character.name,
+                str(character.category),
+                character.race,
+                character.gender,
+                str(character.age),
+                character.sexual_orientation,
+                character.alignment,
+                character.occupation,
+                str(character.is_active),
+                str(character.is_alive),
+                character.location,
+                character.faction,
+                str(character.disposition),
+                str(character.known_by_party),
+                character.description,
+                character.data
+            )
+            
+        console.print(table)
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@character_app.command("show")
+def character_by_id(character_id: int = typer.Argument(..., help="The ID of the character")):
+    """Show the details of a character by ID."""
+
+    def _fmt(value: object) -> str:
+        """Format a value for display in the character detail table."""
+        if value is None:
+            return "[dim]—[/dim]"
+        if isinstance(value, bool):
+            return "[bold green]✓ Yes[/bold green]" if value else "[bold red]✗ No[/bold red]"
+        string_value = str(value)
+        # Strip enum class prefix, e.g. "CharacterType.NPC" → "npc"
+        if "." in string_value and len(string_value.split(".")) == 2:
+            string_value = string_value.split(".", 1)[1].lower()
+        return string_value
+
+    try:
+        client = _get_client()
+        character = client.get_character_by_id(client.config.campaign,
+                                               character_id)
+
+        table = Table(
+            title=f"[bold magenta]✦  {character.name}  ✦[/bold magenta]",
+            box=rich_box.ROUNDED,
+            border_style="steel_blue",
+            show_header=False,
+            padding=(0, 1),
+        )
+        table.add_column("Field", style="bold bright_cyan", width=22, no_wrap=True)
+        table.add_column("Value", style="white")
+
+        # Identity
+        table.add_row("ID", str(character.id))
+        table.add_row("Category", _fmt(character.category))
+        table.add_section()
+
+        # Demographics
+        table.add_row("Race", _fmt(character.race))
+        table.add_row("Gender", _fmt(character.gender))
+        table.add_row("Age", _fmt(character.age))
+        table.add_row("Sexual Orientation", _fmt(character.sexual_orientation))
+        table.add_row("Alignment", _fmt(character.alignment))
+        table.add_row("Occupation", _fmt(character.occupation))
+        table.add_section()
+
+        # Status
+        table.add_row("Active", _fmt(character.is_active))
+        table.add_row("Alive", _fmt(character.is_alive))
+        table.add_row("Location", _fmt(character.location))
+        table.add_row("Faction", _fmt(character.faction))
+        table.add_row("Disposition", _fmt(character.disposition))
+        table.add_row("Known by Party", _fmt(character.known_by_party))
+        table.add_section()
+
+        # Notes
+        table.add_row("Description", _fmt(character.description))
+        table.add_row("Data", _fmt(character.data))
+
+        console.print(table)
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@character_app.command("update")
+def character_update(character_id: int = typer.Argument(..., help="The ID of the character"),
+                     category: Optional[CharacterType] = typer.Option(None, help="Character category"),
+                     race: Optional[str] = typer.Option(None, help="Character race"),
+                     gender: Optional[str] = typer.Option(None, help="Character gender"),
+                     age: Optional[int] = typer.Option(None, help="Character age"),
+                     sexual_orientation: Optional[str] = typer.Option(None, help="Character sexual orientation"),
+                     alignment: Optional[str] = typer.Option(None, help="Character alignment"),
+                     occupation: Optional[str] = typer.Option(None, help="Character occupation"),
+                     is_active: Optional[bool] = typer.Option(None, help="Character is active"),
+                     is_alive: Optional[bool] = typer.Option(None, help="Character is alive"),
+                     location: Optional[str] = typer.Option(None, help="Character location"),
+                     faction: Optional[str] = typer.Option(None, help="Character faction"),
+                     disposition: Optional[Disposition] = typer.Option(None, help="Character disposition"),
+                     known_by_party: Optional[bool] = typer.Option(None, help="Character is known by party"),
+                     description: Optional[str] = typer.Option(None, help="Character description"),
+                     data: Optional[str] = typer.Option(None, help="Character data")):
+    """Update a character in the active campaign."""
+    try:
+        client = _get_client()
+        # Build the update payload with only the fields explicitly provided by
+        # the user. Passing None-valued fields to the constructor would cause
+        # Pydantic to mark them as "set", breaking exclude_unset=True downstream.
+        update_fields = {
+            k: v for k, v in {
+                "category": category,
+                "race": race,
+                "gender": gender,
+                "age": age,
+                "sexual_orientation": sexual_orientation,
+                "alignment": alignment,
+                "occupation": occupation,
+                "is_active": is_active,
+                "is_alive": is_alive,
+                "location": location,
+                "faction": faction,
+                "disposition": disposition,
+                "known_by_party": known_by_party,
+                "description": description,
+                "data": data,
+            }.items() if v is not None
+        }
+        character = GameCharacterOnCampaignUpdate.model_validate(update_fields)
+        updated_character = client.update_character(client.config.campaign, character_id, character)
+        console.print(f"[bold green]Success![/bold green] Character updated: {updated_character.name}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+@character_app.command("delete")
+def character_delete(character_id: int = typer.Argument(..., help="The ID of the character")):
+    """Delete a character from the active campaign."""
+    try:
+        client = _get_client()
+        client.delete_character(client.config.campaign, character_id)
+        console.print(f"[bold green]Success![/bold green] Character deleted: {character_id}")
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")

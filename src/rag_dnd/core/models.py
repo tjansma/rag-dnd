@@ -6,7 +6,7 @@ import sqlalchemy.orm as orm
 
 from ..config import Config
 
-from .exceptions import CampaignNotFoundError
+from ..shared import CampaignNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,9 @@ class ORMBase(orm.DeclarativeBase):
 class CampaignMetadata(ORMBase):
     """Class to represent a campaign."""
     __tablename__ = "campaign_metadata"
+
+    # Allow non-Mapped annotations (used for backref placeholders below)
+    __allow_unmapped__ = True
 
     id: orm.Mapped[int] = orm.mapped_column(sa.Integer,
         primary_key=True,
@@ -56,6 +59,14 @@ class CampaignMetadata(ORMBase):
     system_prompt_extension: orm.Mapped[str | None] = orm.mapped_column(
         sa.String,
         comment="System prompt extension, added to model's system prompt")
+
+    # -----------------------------------------------------------------------
+    # Backref placeholders — these attributes are added at runtime by related
+    # modules. Declared here without type details to maintain strict module
+    # separation (core does not import from game or rag).
+    # -----------------------------------------------------------------------
+    characters: list  # Added by game.GameCharacter via backref="characters"
+    collections: list  # Added by rag.Collection via backref="collections"
     
     @classmethod
     def load_by_id(cls,

@@ -3,12 +3,15 @@ import logging
 from pathlib import Path
 from typing import Self, Any
 
+from sqlalchemy.exc import DatabaseError, InvalidRequestError
 from sqlalchemy.orm import Session
 
 from .core import CampaignMetadata
-from .rag import manager
-from .rag.exceptions import DocumentExistsError
-from .rag.models import QueryResult, Collection
+from .game import GameCharacter
+from .rag import manager, Collection
+from .shared import DocumentExistsError, DuplicateGameCharacterError, \
+    GameCharacterOnCampaignCreate, QueryResult, GameCharacterOnCampaignUpdate, \
+    GameCharacterNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -235,3 +238,148 @@ class Campaign:
         manager.delete_document(collection,
                                 filename,
                                 self._db_session)
+
+    # ==================================================================
+    # Game character methods
+    # ==================================================================
+    def add_gamecharacter(self, 
+                          game_character_data: GameCharacterOnCampaignCreate
+                         ) -> GameCharacter:
+        """
+        Add a game character to the campaign.
+        
+        Args:
+            game_character_data (GameCharacterOnCampaignCreate): The game
+                character to add.
+            
+        Returns:
+            GameCharacter: The new game character.
+        """
+        new_character = GameCharacter(campaign_id=self.metadata.id,
+                                      **game_character_data.model_dump())
+        
+        try:
+            with self._db_session.begin_nested():
+                self._db_session.add(new_character)
+                self._db_session.flush()
+        except (DatabaseError, InvalidRequestError) as e:
+            logger.error(f"Campaign.add_gamecharacter: Error adding game "
+                         f"character: {game_character_data.name} in campaign: "
+                         f"{self.metadata.short_name}")
+            raise DuplicateGameCharacterError(
+                f"Game character '{game_character_data.name}' already exists in "
+                f"campaign '{self.metadata.short_name}'.")
+        
+        return new_character
+
+    def get_gamecharacters(self, exclude_inactive: bool = True) -> list[GameCharacter]:
+        """
+        Get all game characters in the campaign.
+        
+        Args:
+            exclude_inactive (bool): Whether to exclude inactive game characters.
+            
+        Returns:
+            list[GameCharacter]: The game characters.
+        """
+        if exclude_inactive:
+            return [gamechar 
+                    for gamechar in self.metadata.characters 
+                    if gamechar.is_active]
+        else:
+            return list(self.metadata.characters)
+
+    def get_gamecharacter_by_name(self, character_name: str, exclude_inactive: bool = True) \
+            -> GameCharacter | None:
+        """
+        Get a game character by name.
+        
+        Args:
+            character_name (str): The name of the game character to get.
+            exclude_inactive (bool): Whether to exclude inactive game characters.
+            
+        Returns:
+            GameCharacter | None: The game character, or None if not found.
+        """
+        for gamechar in self.metadata.characters:
+            if gamechar.name == character_name:
+                if exclude_inactive and not gamechar.is_active:
+                    return None
+                return gamechar
+        return None
+
+    def get_gamecharacter_by_id(self,
+                                character_id: int,
+                                exclude_inactive: bool = True) \
+            -> GameCharacter | None:
+        """
+        Get a game character by ID.
+        
+        Args:
+            character_id (int): The ID of the game character to get.
+            exclude_inactive (bool): Whether to exclude inactive game characters.
+            
+        Returns:
+            GameCharacter | None: The game character, or None if not found.
+        """
+        for gamechar in self.metadata.characters:
+            if gamechar.id == character_id:
+                if exclude_inactive and not gamechar.is_active:
+                    return None
+                return gamechar
+        return None
+
+    def update_gamecharacter(self, 
+                             character_id: int,
+                             game_character_data: GameCharacterOnCampaignUpdate
+                            ) -> GameCharacter:
+        """
+        Update a game character in the campaign.
+        
+        Args:
+            character_id (int): The ID of the game character to update.
+            game_character_data (GameCharacterOnCampaignUpdate): The game
+                character data to update.
+            
+        Returns:
+            GameCharacter: The updated game character.
+        """
+        gamechar = self.get_gamecharacter_by_id(character_id)
+        if gamechar is None:
+            raise GameCharacterNotFoundError(
+                f"Game character with ID '{character_id}' not found in campaign "
+                f"'{self.metadata.short_name}'.")
+        
+        for key, value in game_character_data.model_dump(
+            exclude_unset=True
+        ).items():
+            setattr(gamechar, key, value)
+        
+        with self._db_session.begin_nested():
+            self._db_session.add(gamechar)
+            self._db_session.flush()
+        
+        return gamechar
+
+    def delete_gamecharacter(self, character_id: int) -> None:
+        """
+        Delete a game character from the campaign.
+        
+        Args:
+            character_id (int): The ID of the game character to delete.
+            
+        Returns:
+            None
+        """
+        gamechar = self.get_gamecharacter_by_id(character_id, exclude_inactive=False)
+        if gamechar is None:
+            raise GameCharacterNotFoundError(
+                f"Game character with ID '{character_id}' not found in campaign "
+                f"'{self.metadata.short_name}'.")
+
+        if not gamechar.is_active:
+            return
+
+        with self._db_session.begin_nested():
+            gamechar.is_active = False
+            self._db_session.flush()

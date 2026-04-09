@@ -13,7 +13,10 @@ from .models import (
     HumanPlayerCreate,
     AIPlayerCreate,
     HumanPlayerResponse,
-    AIPlayerResponse
+    AIPlayerResponse,
+    GameCharacterOnCampaignResponse,
+    GameCharacterOnCampaignCreate,
+    GameCharacterOnCampaignUpdate
 )
 
 PlayerCreateType = Union[HumanPlayerCreate, AIPlayerCreate]
@@ -233,7 +236,7 @@ class RAGClient:
         response.raise_for_status()
         
         data = response.json()
-        results = []
+        results: List[PlayerResponseType] = []
         for item in data:
             if item.get("player_type") == "human":
                 results.append(HumanPlayerResponse.model_validate(item))
@@ -241,7 +244,7 @@ class RAGClient:
                 results.append(AIPlayerResponse.model_validate(item))
         return results
 
-    def get_player(self, player_id: int = None, player_name: str = None) -> PlayerResponseType:
+    def get_player(self, player_id: int | None = None, player_name: str | None = None) -> PlayerResponseType:
         """
         Get a player by ID or name.
         
@@ -287,3 +290,87 @@ class RAGClient:
         if data.get("player_type") == "human":
             return HumanPlayerResponse.model_validate(data)
         return AIPlayerResponse.model_validate(data)
+
+    def add_character_to_campaign(self, campaign_short_name: str, character_data: GameCharacterOnCampaignCreate) -> GameCharacterOnCampaignResponse:
+        """
+        Add a character to a campaign.
+        
+        Args:
+            campaign_short_name (str): The short name of the campaign.
+            character_data (GameCharacterOnCampaignCreate): The data of the character to add.
+            
+        Returns:
+            GameCharacterOnCampaignResponse: The added character.
+        """
+        url = f"{self.config.base_url}/v2/campaigns/{campaign_short_name}/characters"
+        response = requests.post(url, json=character_data.model_dump(mode="json"))
+        response.raise_for_status()
+        
+        return GameCharacterOnCampaignResponse.model_validate(response.json())
+
+    def get_characters(self, campaign_short_name: str) -> List[GameCharacterOnCampaignResponse]:
+        """
+        Get all characters in a campaign.
+        
+        Args:
+            campaign_short_name (str): The short name of the campaign.
+            
+        Returns:
+            List[GameCharacterOnCampaignResponse]: The list of characters.
+        """
+        url = f"{self.config.base_url}/v2/campaigns/{campaign_short_name}/characters"
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        data = response.json()
+        return [GameCharacterOnCampaignResponse.model_validate(item) for item in data]
+
+    def get_character_by_id(self,
+                            campaign_short_name: str,
+                            gamecharacter_id: int) \
+                                -> GameCharacterOnCampaignResponse:
+        url = f"{self.config.base_url}/v2/campaigns/{campaign_short_name}/characters/{gamecharacter_id}"
+        response = requests.get(url)
+        response.raise_for_status()
+
+        gamecharacter_data = response.json()
+        return GameCharacterOnCampaignResponse.model_validate(gamecharacter_data)
+
+    def update_character(self,
+                         campaign_short_name: str,
+                         gamecharacter_id: int,
+                         character_data: GameCharacterOnCampaignUpdate) \
+                             -> GameCharacterOnCampaignResponse:
+        """
+        Update a character in a campaign.
+        
+        Args:
+            campaign_short_name (str): The short name of the campaign.
+            gamecharacter_id (int): The ID of the character to update.
+            character_data (GameCharacterOnCampaignUpdate): The data of the character to update.
+            
+        Returns:
+            GameCharacterOnCampaignResponse: The updated character.
+        """
+        url = f"{self.config.base_url}/v2/campaigns/{campaign_short_name}/characters/{gamecharacter_id}"
+        response = requests.put(url, json=character_data.model_dump(mode="json", exclude_unset=True))
+        response.raise_for_status()
+        
+        return GameCharacterOnCampaignResponse.model_validate(response.json())
+
+    def delete_character(self,
+                         campaign_short_name: str,
+                         gamecharacter_id: int) -> None:
+        """
+        Delete a character from a campaign.
+        
+        Args:
+            campaign_short_name (str): The short name of the campaign.
+            gamecharacter_id (int): The ID of the character to delete.
+            
+        Returns:
+            None
+        """
+        url = f"{self.config.base_url}/v2/campaigns/{campaign_short_name}/characters/{gamecharacter_id}"
+        response = requests.delete(url)
+        response.raise_for_status()
