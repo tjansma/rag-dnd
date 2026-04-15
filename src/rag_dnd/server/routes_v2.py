@@ -441,7 +441,8 @@ def create_gamecharacter(request: GameCharacterOnCampaignCreate,
                tags=["characters"])
 def get_gamecharacters(campaign_and_collection: tuple[Campaign, str] = 
                              Depends(get_campaign_and_collection),
-                        ) -> list[GameCharacterOnCampaignResponse]:
+                        exclude_inactive: bool = True
+                      ) -> list[GameCharacterOnCampaignResponse]:
     """
     Get all game characters.
     
@@ -457,7 +458,7 @@ def get_gamecharacters(campaign_and_collection: tuple[Campaign, str] =
     campaign, collection_name = campaign_and_collection
     logger.debug(f"routes_v2.get_gamecharacters: Entering")
     try:
-        gamecharacters = campaign.get_gamecharacters()
+        gamecharacters = campaign.get_gamecharacters(exclude_inactive)
     except Exception as e:
         logger.error(f"routes_v2.get_gamecharacters: Error getting game characters: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -471,6 +472,7 @@ def get_gamecharacters(campaign_and_collection: tuple[Campaign, str] =
 def get_gamecharacter_by_id(character_id: int,
                               campaign_and_collection: tuple[Campaign, str] = 
                                   Depends(get_campaign_and_collection),
+                            exclude_inactive: bool = True
                              ) -> GameCharacterOnCampaignResponse:
     """
     Get a game character by ID.
@@ -489,7 +491,7 @@ def get_gamecharacter_by_id(character_id: int,
     campaign, collection_name = campaign_and_collection
     logger.debug(f"routes_v2.get_gamecharacter_by_id: Entering {character_id=}")
     try:
-        gamecharacter = campaign.get_gamecharacter_by_id(character_id)
+        gamecharacter = campaign.get_gamecharacter_by_id(character_id, exclude_inactive)
     except Exception as e:
         logger.error(f"routes_v2.get_gamecharacter_by_id: Error getting game "
                      f"character: {e}")
@@ -550,7 +552,7 @@ def update_gamecharacter(character_id: int,
     return TypeAdapter(GameCharacterOnCampaignResponse).validate_python(gamecharacter)
 
 @router_v2.delete("/campaigns/{campaign_short_name}/characters/{character_id}",
-               status_code=200,
+               status_code=204,
                tags=["characters"])
 def delete_gamecharacter(character_id: int,
                          campaign_and_collection: tuple[Campaign, str] = 
