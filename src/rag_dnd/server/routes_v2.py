@@ -10,7 +10,8 @@ from .. import rag
 from ..campaign import Campaign
 from ..shared import DuplicateGameCharacterError, GameCharacterOnCampaignCreate, \
     GameCharacterOnCampaignResponse, PlayerCreateSchema, PlayerResponseSchema, \
-    QueryResult, GameCharacterOnCampaignUpdate, GameCharacterNotFoundError
+    QueryResult, GameCharacterOnCampaignUpdate, GameCharacterNotFoundError, \
+    DocumentNotFoundError, PlayerExistsError, PlayerNotFoundError
 
 from .dependencies import database_session, get_campaign_and_collection
 from .upload import temporary_upload
@@ -156,7 +157,7 @@ def delete_document(filename: str,
                  f"{filename} from collection: {collection_name}")
     try:
         campaign.delete_document(filename, collection_name=collection_name)
-    except rag.DocumentNotFoundError as e:
+    except DocumentNotFoundError as e:
         logger.error(f"routes_v2.delete_document: Error deleting document: {e}")
         raise HTTPException(status_code=404, detail="Document not found")
     except Exception as e:
@@ -284,7 +285,7 @@ def register_player(request: PlayerCreateSchema,
     logger.debug(f"routes_v2.register_player: Entering {request=}")
     try:
         player = game.register_player(request, db_session)
-    except game.PlayerExistsError as e:
+    except PlayerExistsError as e:
         logger.error(f"routes_v2.register_player: "
                      f"Error registering player: {e}")
         raise HTTPException(status_code=400, detail="Player already exists")
@@ -295,7 +296,7 @@ def register_player(request: PlayerCreateSchema,
     logger.info(f"routes_v2.register_player: "
                 f"Player registered: {player.name}")
     
-    return TypeAdapter(game.PlayerResponseSchema).validate_python(player)
+    return TypeAdapter(PlayerResponseSchema).validate_python(player)
 
 # ---------------------------------------------------------------------------
 # Player query routes
@@ -349,7 +350,7 @@ def get_player_by_id(player_id: int,
     logger.debug(f"routes_v2.get_player_by_id: Entering {player_id=}")
     try:
         player = game.get_player_by_id(player_id, db_session)
-    except game.PlayerNotFoundError as e:
+    except PlayerNotFoundError as e:
         logger.error(f"routes_v2.get_player_by_id: Error getting player: {e}")
         raise HTTPException(status_code=404, detail="Player not found")
     except Exception as e:
@@ -381,7 +382,7 @@ def get_player_by_name(player_name: str,
     logger.debug(f"routes_v2.get_player_by_name: Entering {player_name=}")
     try:
         player = game.get_player_by_name(player_name, db_session)
-    except game.PlayerNotFoundError as e:
+    except PlayerNotFoundError as e:
         logger.error(f"routes_v2.get_player_by_name: Error getting player: {e}")
         raise HTTPException(status_code=404, detail="Player not found")
     except Exception as e:
