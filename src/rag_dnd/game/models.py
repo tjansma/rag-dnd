@@ -92,6 +92,9 @@ class GameCharacter(ORMBase):
     """Game character model."""
     __tablename__ = "game_characters"
 
+    # Allow non-Mapped annotations (used for backref placeholders below)
+    __allow_unmapped__ = True
+
     __table_args__ = (
         sa.UniqueConstraint("name", 
                             "campaign_id", 
@@ -153,6 +156,20 @@ class GameCharacter(ORMBase):
                                         nullable=False,
                                         comment="Campaign ID"
                                     )
+
+    # -----------------------------------------------------------------------
+    # Backref placeholders — these attributes are added at runtime by related
+    # modules. Declared here for type hinting purposes.
+    # -----------------------------------------------------------------------
+    # Added by CharacterRelationship
+    from_relationships: list  # Relationships from perspective of this character
+    to_relationships:   list  # Relationships directed to this character
+
+    # Added by PlayerCharacter
+    player_characters:  list  # Player-character assignments
+
+    # Added by ChunkCharacter
+    chunk_characters:   list  # Chunks this character is in
 
     campaign: orm.Mapped[CampaignMetadata] = \
         orm.relationship("CampaignMetadata", backref="characters")

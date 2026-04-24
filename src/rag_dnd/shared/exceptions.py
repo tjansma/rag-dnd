@@ -33,3 +33,20 @@ class DuplicateGameCharacterError(RAGDNDException):
 class GameCharacterNotFoundError(RAGDNDException):
     """Exception raised when a game character is not found."""
     pass
+
+class DuplicateCharacterRelationshipError(RAGDNDException):
+    """Exception raised when a character relationship already exists."""
+    pass
+
+class CharacterRelationshipNotFoundError(RAGDNDException):
+    """Exception raised when a character relationship is not found."""
+    pass
+
+class IllegalCharacterRelationshipError(RAGDNDException):
+    """
+    Exception raised when a character relationship is illegal.
+    For example: 
+    - Trying to add a relationship between a character and itself.
+    - Trying to add a relationship between two characters in different campaigns.
+    """
+    pass

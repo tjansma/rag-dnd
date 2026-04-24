@@ -3,7 +3,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from .enums import PlayerType, CharacterType, Disposition
+from .enums import PlayerType, CharacterType, Disposition, RelationshipType
 
 
 # ===========================================================================
@@ -132,7 +132,7 @@ PlayerResponseSchema = Annotated[
 ]
 
 # ---------------------------------------------------------------------------
-# Campaign schemas
+# GameCharacter schemas
 # ---------------------------------------------------------------------------
 
 class GameCharacterOnCampaignCreate(BaseModel):
@@ -265,6 +265,75 @@ class GameCharacterOnCampaignResponse(BaseModel):
     description: str | None = Field(None, description="Character description")
     data: Any | None = Field(None, description="Character data")
     campaign_id: int = Field(..., description="Campaign ID")
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+# ---------------------------------------------------------------------------
+# Character relationship schemas
+# ---------------------------------------------------------------------------
+class CharacterRelationshipCreate(BaseModel):
+    """
+    Schema for creating a character relationship.
+
+    Attributes:
+        to_character_id: To character ID
+        relationship_type: Relationship type
+        description: Relationship description
+    """
+    to_character_id: int = Field(..., description="To character ID")
+    relationship_type: RelationshipType = \
+        Field(...,
+              description=f"Relationship type. Allowed values are: "
+                          f"{', '.join([rel.name for rel in RelationshipType])}"
+             )
+    description: str | None = Field(None, description="Relationship description")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CharacterRelationshipUpdate(BaseModel):
+    """
+    Schema for updating a character relationship.
+
+    Attributes:
+        id: Relationship ID
+        relationship_type: Relationship type
+        description: Relationship description. Empty string means remove description.
+    """
+    id: int = Field(..., description="Relationship ID")
+    relationship_type: RelationshipType | None = \
+        Field(None,
+              description=f"Relationship type. Allowed values are: "
+                          f"{', '.join([rel.name for rel in RelationshipType])}"
+             )
+    description: str | None = Field(None, description="Relationship description")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CharacterRelationshipResponse(BaseModel):
+    """
+    Schema for character relationship response.
+
+    Attributes:
+        id: Relationship ID
+        from_character_id: From character ID
+        to_character_id: To character ID
+        relationship_type: Relationship type
+        description: Relationship description
+    """
+    id: int = Field(..., description="Relationship ID")
+    from_character_id: int = Field(..., description="From character ID")
+    to_character_id: int = Field(..., description="To character ID")
+    relationship_type: RelationshipType = \
+        Field(...,
+              description=f"Relationship type. Allowed values are: "
+                          f"{', '.join([rel.name for rel in RelationshipType])}"
+             )
+    description: str | None = Field(None,
+                                    description="Relationship description"
+                                   )
 
     model_config = ConfigDict(extra="forbid", from_attributes=True)
 
