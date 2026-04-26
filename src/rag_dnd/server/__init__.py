@@ -1,12 +1,16 @@
 from contextlib import asynccontextmanager
+import logging
+
 from fastapi import FastAPI
 
 from ..config import Config
 from ..core import init_db
 from ..log import setup_logging
 
-# Load config and set env vars BEFORE importing routes/transformers
 setup_logging(Config.load())
+
+logger = logging.getLogger(__name__)
+logger.info("server.__init__: Server starting...")
 
 from .routes_v2 import router_v2
 

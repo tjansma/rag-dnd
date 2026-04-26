@@ -17,24 +17,69 @@ from .models import GameCharacter, CharacterRelationship
 logger = logging.getLogger(__name__)
 
 class Character:
-    def __init__(self, data: GameCharacter, database_session: Session):
+    """
+    Represents a game character.
+    
+    Attributes:
+        data (GameCharacter): The character data.
+        _database_session (Session): The database session.
+    """
+    
+    def __init__(self, data: GameCharacter, database_session: Session) -> None:
+        """
+        Create a Character instance.
+        
+        Args:
+            data (GameCharacter): The character data.
+            database_session (Session): The database session.
+        """
         self.data = data
         self._database_session = database_session
 
     @property
     def id(self) -> int:
+        """
+        Get the character ID.
+        
+        Returns:
+            int: The character ID.
+        """
         return self.data.id
 
     @property
     def campaign_id(self) -> int:
+        """
+        Get the campaign ID.
+        
+        Returns:
+            int: The campaign ID.
+        """
         return self.data.campaign_id
 
     @property
-    def relationships(self) -> list[CharacterRelationship]:
-        return list(set(self.data.from_relationships + self.data.to_relationships))
+    def all_relationships(self) -> list[CharacterRelationship]:
+        """
+        Get all relationships for the character.
+        
+        Returns:
+            list[CharacterRelationship]: List of all unique relationships for
+                                         the character
+        """
+        seen = set()
+        result = []
+
+        for rel in self.data.from_relationships + self.data.to_relationships:
+            if rel.id not in seen:
+                seen.add(rel.id)
+                result.append(rel)
+
+        return result
 
     @classmethod
-    def from_db_by_id(cls, character_id: int, database_session: Session) -> Self:
+    def from_db_by_id(cls,
+                      character_id: int,
+                      database_session: Session
+                     ) -> Self:
         """
         Create a Character instance from the database by character ID.
         
@@ -44,12 +89,20 @@ class Character:
             
         Returns:
             Self: A Character instance.
+
+        Raises:
+            GameCharacterNotFoundError: If the character is not found.
         """
-        character_data = database_session.query(GameCharacter).get(character_id)
+        character_data = database_session.get(GameCharacter, character_id)
         if character_data is None:
             raise GameCharacterNotFoundError(
                 f"Character with ID {character_id} not found."
             )
+
+        logger.debug(
+            f"Character with ID {character_id} retrieved: {character_data.name}"
+        )
+
         return cls(character_data, database_session)
 
     def add_relationship(self,
@@ -59,41 +112,39 @@ class Character:
         Add a relationship to the character.
         
         Args:
-            new_relationship_data (CharacterRelationshipCreate): The relationship to add.
+            new_relationship_data (CharacterRelationshipCreate): The 
+                relationship to add.
             
         Returns:
             None
-        """
-        logger.info(
-            f"Adding relationship between {self.data.name} and "
-            f"{new_relationship_data.to_character_id}."
-        )
-        logger.debug(
-            f"Relationship data: {new_relationship_data}"
-        )
 
+        Raises:
+            DuplicateCharacterRelationshipError: If the relationship already
+                exists.
+            IllegalCharacterRelationshipError: If the to_character is not in
+                the same campaign as the character or the to_character is
+                the same as the character.
+            GameCharacterNotFoundError: If the to_character is not found.
+        """
         to_character = Character.from_db_by_id(
             new_relationship_data.to_character_id,
             self._database_session
         )
-        
+        logger.debug(
+            f"from={self.data.name} (ID: {self.data.id}), "
+            f"to={to_character.data.name} (ID: {to_character.data.id}), "
+            f"relationship type={new_relationship_data.relationship_type}"
+        )
+
         if to_character.campaign_id != self.campaign_id:
-            logger.error(
-                f"Character with ID {new_relationship_data.to_character_id} "
-                f"does not belong to campaign {self.campaign_id}."
-            )
             raise IllegalCharacterRelationshipError(
-                f"Character with ID {new_relationship_data.to_character_id} "
-                f"does not belong to campaign {self.campaign_id}."
+                f"Character with ID {to_character.id} does not belong to "
+                f"campaign {self.campaign_id}."
             )
-            
+
         if to_character.id == self.id:
-            logger.error(
-                f"Character with ID {new_relationship_data.to_character_id} "
-                f"cannot have a relationship with itself."
-            )
             raise IllegalCharacterRelationshipError(
-                f"Character with ID {new_relationship_data.to_character_id} "
+                f"Character with ID {to_character.id} "
                 f"cannot have a relationship with itself."
             )
 
@@ -106,12 +157,11 @@ class Character:
             with self._database_session.begin_nested():
                 self.data.from_relationships.append(new_relationship)
                 self._database_session.flush()
-            logger.debug(
+            logger.info(
                 f"Relationship between {self.data.name} and "
                 f"{to_character.data.name} added successfully."
             )
         except IntegrityError as e:
-            logger.error(f"Duplicate relationship detected: {e}")
             raise DuplicateCharacterRelationshipError(
                 f"Relationship between {self.data.name} and "
                 f"{to_character.data.name} already exists."
@@ -128,23 +178,18 @@ class Character:
             
         Returns:
             None
+
+        Raises:
+            CharacterRelationshipNotFoundError: If the relationship is not found.
+            DuplicateCharacterRelationshipError: If the relationship already exists.
         """
-        logger.info(
-            f"Updating relationship with ID {relationship_data.id} for character "
-            f"{self.data.name}."
-        )
-        logger.debug(
-            f"Relationship data: {relationship_data}"
-        )
         relationship_to_update = next(
             (relationship for relationship in self.data.from_relationships
              if relationship.id == relationship_data.id), 
             None
         )
+
         if relationship_to_update is None:
-            logger.error(
-                f"Relationship with ID {relationship_data.id} not found."
-            )
             raise CharacterRelationshipNotFoundError(
                 f"Relationship with ID {relationship_data.id} not found or doesn't "
                 "belong to this character."
@@ -155,8 +200,8 @@ class Character:
             and relationship_data.description is None
         ):
             logger.debug(
-                f"No data provided to update for relationship with ID "
-                f"{relationship_data.id}."
+                f"No data provided to update for "
+                f"relationship with ID {relationship_data.id}."
             )
             return
         
@@ -166,25 +211,19 @@ class Character:
                     relationship_to_update.relationship_type = \
                         relationship_data.relationship_type
                 if relationship_data.description is not None:
+                    # Replace empty string with None
                     relationship_to_update.description = \
                         relationship_data.description or None
                 self._database_session.flush()
-            logger.debug(
-                f"Relationship with ID {relationship_data.id} updated successfully."
+            logger.info(
+                f"Relationship with ID "
+                f"{relationship_data.id} updated successfully."
             )
         except IntegrityError as e:
-            logger.error(
-                f"Duplicate relationship detected: {e}"
-            )
             raise DuplicateCharacterRelationshipError(
                 f"Relationship between {self.data.name} and "
                 f"{relationship_to_update.to_character.name} already exists."
             ) from e
-        except Exception as e:
-            logger.error(
-                f"Error updating relationship: {e}"
-            )
-            raise
 
     def delete_relationship(self, relationship_id: int) -> None:
         """
@@ -196,37 +235,22 @@ class Character:
         Returns:
             None
         """
-        logger.info(
-            f"Deleting relationship with ID {relationship_id} for character "
-            f"{self.data.name}."
-        )
-        logger.debug(
-            f"Relationship ID: {relationship_id}"
-        )
         relationship_to_delete = next(
             (relationship for relationship in self.data.from_relationships
              if relationship.id == relationship_id), 
             None
         )
         if relationship_to_delete is None:
-            logger.error(
-                f"Relationship with ID {relationship_id} not found for character "
-                f"{self.data.name}."
-            )
             raise CharacterRelationshipNotFoundError(
                 f"Relationship with ID {relationship_id} not found or doesn't "
                 f"belong to character {self.data.name}."
             )
         
-        try:
-            with self._database_session.begin_nested():
-                self._database_session.delete(relationship_to_delete)
-                self._database_session.flush()
-            logger.debug(
-                f"Relationship with ID {relationship_id} deleted successfully."
-            )
-        except Exception as e:
-            logger.error(
-                f"Error deleting relationship: {e}"
-            )
-            raise
+        with self._database_session.begin_nested():
+            self._database_session.delete(relationship_to_delete)
+            self._database_session.flush()
+
+        logger.info(
+            f"Relationship with ID {relationship_id} "
+            f"deleted successfully."
+        )

@@ -1,3 +1,4 @@
+import logging
 import sys
 import os
 
@@ -7,9 +8,11 @@ if os.name == 'nt':
     sys.stderr.reconfigure(encoding='utf-8')    # pyrefly: ignore
 
 from ..config import Config
-from ..log import setup_logging
 
 config = Config.load()
+
+logger = logging.getLogger(__name__)
+logger.info("server.main: Starting server...")
 
 def start():
     """Entry point for rag-server"""

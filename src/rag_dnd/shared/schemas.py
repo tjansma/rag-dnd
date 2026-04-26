@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from .enums import PlayerType, CharacterType, Disposition, RelationshipType
 
@@ -157,6 +157,8 @@ class GameCharacterOnCampaignCreate(BaseModel):
         description (optional): Character description
         data (optional): Character data
     """
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., description="Character name")
     category: CharacterType = Field(..., description="Character category")
     race: str | None = Field(None, description="Character race")
@@ -175,8 +177,6 @@ class GameCharacterOnCampaignCreate(BaseModel):
     known_by_party: bool = Field(False, description="Character is known by party")
     description: str | None = Field(None, description="Character description")
     data: Any | None = Field(None, description="Character data")
-
-    model_config = ConfigDict(extra="forbid")
 
 
 class GameCharacterOnCampaignUpdate(BaseModel):
@@ -200,6 +200,8 @@ class GameCharacterOnCampaignUpdate(BaseModel):
         description (optional): Character description
         data (optional): Character data
     """
+    model_config = ConfigDict(extra="forbid")
+
     category: CharacterType | None = Field(None, description="Character category")
     race: str | None = Field(None, description="Character race")
     gender: str | None = Field(None, description="Character gender")
@@ -218,7 +220,13 @@ class GameCharacterOnCampaignUpdate(BaseModel):
     description: str | None = Field(None, description="Character description")
     data: Any | None = Field(None, description="Character data")
 
-    model_config = ConfigDict(extra="forbid")
+    @model_validator(mode='before')
+    @classmethod
+    def reject_explicit_null_for_booleans(cls, data):
+        for field in ('is_active', 'is_alive', 'known_by_party'):
+            if field in data and data[field] is None:
+                raise ValueError(f"'{field}' may not be null; omit it to leave unchanged.")
+        return data
 
 
 class GameCharacterOnCampaignResponse(BaseModel):
@@ -245,6 +253,8 @@ class GameCharacterOnCampaignResponse(BaseModel):
         data: Character data
         campaign_id: Campaign ID
     """
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
     id: int = Field(..., description="Character ID")
     name: str = Field(..., description="Character name")
     category: CharacterType = Field(..., description="Character category")
@@ -266,8 +276,6 @@ class GameCharacterOnCampaignResponse(BaseModel):
     data: Any | None = Field(None, description="Character data")
     campaign_id: int = Field(..., description="Campaign ID")
 
-    model_config = ConfigDict(extra="forbid", from_attributes=True)
-
 
 # ---------------------------------------------------------------------------
 # Character relationship schemas
@@ -281,6 +289,8 @@ class CharacterRelationshipCreate(BaseModel):
         relationship_type: Relationship type
         description: Relationship description
     """
+    model_config = ConfigDict(extra="forbid")
+
     to_character_id: int = Field(..., description="To character ID")
     relationship_type: RelationshipType = \
         Field(...,
@@ -289,8 +299,6 @@ class CharacterRelationshipCreate(BaseModel):
              )
     description: str | None = Field(None, description="Relationship description")
 
-    model_config = ConfigDict(extra="forbid")
-
 
 class CharacterRelationshipUpdate(BaseModel):
     """
@@ -298,9 +306,13 @@ class CharacterRelationshipUpdate(BaseModel):
 
     Attributes:
         id: Relationship ID
-        relationship_type: Relationship type
-        description: Relationship description. Empty string means remove description.
+        relationship_type: Relationship type. Unset (None) means relationship
+            type will not be updated.
+        description: Relationship description. Empty string ("") means remove
+            description. Unset (None) means description will not be updated.
     """
+    model_config = ConfigDict(extra="forbid")
+
     id: int = Field(..., description="Relationship ID")
     relationship_type: RelationshipType | None = \
         Field(None,
@@ -308,8 +320,6 @@ class CharacterRelationshipUpdate(BaseModel):
                           f"{', '.join([rel.name for rel in RelationshipType])}"
              )
     description: str | None = Field(None, description="Relationship description")
-
-    model_config = ConfigDict(extra="forbid")
 
 
 class CharacterRelationshipResponse(BaseModel):
@@ -323,6 +333,8 @@ class CharacterRelationshipResponse(BaseModel):
         relationship_type: Relationship type
         description: Relationship description
     """
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
     id: int = Field(..., description="Relationship ID")
     from_character_id: int = Field(..., description="From character ID")
     to_character_id: int = Field(..., description="To character ID")
@@ -334,8 +346,6 @@ class CharacterRelationshipResponse(BaseModel):
     description: str | None = Field(None,
                                     description="Relationship description"
                                    )
-
-    model_config = ConfigDict(extra="forbid", from_attributes=True)
 
 
 # ===========================================================================

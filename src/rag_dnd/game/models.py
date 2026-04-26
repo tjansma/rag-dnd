@@ -1,7 +1,7 @@
 """Data models for the game."""
-from datetime import datetime
 import logging
 from pathlib import Path
+from datetime import datetime, timezone
 from typing import Any
 
 import sqlalchemy as sa
@@ -46,7 +46,7 @@ class HumanPlayer(Player):
         nullable=False,
         unique=True,
         comment="Human player email")
-    age: orm.Mapped[int] = orm.mapped_column(sa.Integer,
+    age: orm.Mapped[int | None] = orm.mapped_column(sa.Integer,
         nullable=True,
         comment="Human player age")
     gender: orm.Mapped[str] = orm.mapped_column(sa.String,
@@ -79,7 +79,7 @@ class AIPlayer(Player):
     system_prompt: orm.Mapped[str | None] = orm.mapped_column(sa.String,
         nullable=True,
         comment="System prompt")
-    temperature: orm.Mapped[float] = orm.mapped_column(sa.Float,
+    temperature: orm.Mapped[float | None] = orm.mapped_column(sa.Float,
         nullable=True,
         comment="AI Temperature (controls randomness of AI responses)")
 
@@ -312,7 +312,7 @@ class GameSession(ORMBase):
         comment="Session GUID")
     session_date: orm.Mapped[datetime] = orm.mapped_column(
         sa.DateTime,
-        default=sa.func.now(),
+        default=lambda: datetime.now(timezone.utc),
         comment="Session date")
     title: orm.Mapped[str | None] = orm.mapped_column(
         sa.String,
@@ -350,7 +350,7 @@ class Turn(ORMBase):
         comment="Turn number within the session")
     timestamp: orm.Mapped[datetime] = orm.mapped_column(
         sa.DateTime,
-        default=sa.func.now(),
+        default=lambda: datetime.now(timezone.utc),
         comment="Turn timestamp")
     player_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("players.id"),
@@ -373,9 +373,9 @@ class TurnCharacter(ORMBase):
     __tablename__ = "turn_characters"
 
     __table_args__ = (
-        sa.UniqueConstraint("turn_id", 
+        sa.UniqueConstraint("turn_id",
                             "character_id",
-                                "role",
+                            "role",
                             name="uniq_turn_character_role"),
     )
 
@@ -420,7 +420,7 @@ class Asset(ORMBase):
     asset_type: orm.Mapped[AssetType] = orm.mapped_column(
         sa.Enum(AssetType),
         comment="Asset type")
-    mime_type: orm.Mapped[str] = orm.mapped_column(
+    mime_type: orm.Mapped[str | None] = orm.mapped_column(
         sa.String,
         nullable=True,
         comment="Asset mime type")
@@ -434,12 +434,12 @@ class Asset(ORMBase):
         comment="Asset tags")
     created: orm.Mapped[datetime] = orm.mapped_column(
         sa.DateTime,
-        default=sa.func.now(),
+        default=lambda: datetime.now(timezone.utc),
         comment="Asset creation date")
     last_updated: orm.Mapped[datetime] = orm.mapped_column(
         sa.DateTime,
-        default=sa.func.now(),
-        onupdate=sa.func.now(),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
         comment="Asset last updated date")
 
 
